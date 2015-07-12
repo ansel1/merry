@@ -147,3 +147,8 @@ func main() {
 ```
     
 See inline docs for more details.
+
+License
+-------
+
+This package is licensed under the MIT license, see LICENSE.MIT for details.
