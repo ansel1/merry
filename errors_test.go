@@ -100,33 +100,49 @@ func TestWrap(t *testing.T) {
 	}
 }
 
-func TestCopy(t *testing.T) {
-	_, _, rl, _ := runtime.Caller(0)
-	err := New("bang").WithHTTPCode(404).WithMessage("thppt")
-	_, _, rl2, _ := runtime.Caller(0)
-	errcopy := Copy(err)
-	if errcopy.(*richError).err != err.(*richError).err {
-		t.Errorf("The copy's underlying error should be the same as the original.")
-	}
-	_, l := Location(err)
-	if l != rl + 1 {
-		t.Errorf("The original's line number is wrong.  Expected %d, got %d", rl + 1, l)
-	}
-	_, l = Location(errcopy)
-	if l != rl2 + 1 {
-		t.Errorf("The copy's line number should be %d, got %d", rl2 + 1, l)
-	}
-	if errcopy.Error() != err.Error() {
-		t.Errorf("The copy's error string should be %s, got %s", err.Error(), errcopy.Error())
-	}
-	if errcopy.HTTPCode() != err.HTTPCode() {
-		t.Errorf("The copy's http code should be %d, got %d", err.HTTPCode(), errcopy.HTTPCode())
+func TestExtend(t *testing.T) {
+	ParseError := New("Parse error")
+	InvalidCharSet := Extend(ParseError).WithMessage("Invalid charset").WithHTTPCode(400)
+	InvalidSyntax := Extend(ParseError)
+
+	if !Is(InvalidCharSet, ParseError) {
+		t.Error("InvalidCharSet should be a ParseError")
 	}
 
-	serr := errors.New("simple err")
-	errcopy = Copy(serr)
-	if errcopy.(*richError).err != serr {
-		t.Errorf("Copy should work just like wrap if the original error is just a simple error")
+	_, _, rl, _ := runtime.Caller(0)
+	pe := Extend(ParseError)
+	_, l := Location(pe)
+	if l != rl + 1 {
+		t.Errorf("Extend should capture a new stack.  Expected %d, got %d", rl + 1, l)
+	}
+
+	if !Is(pe, ParseError) {
+		t.Error("pe should be a ParseError")
+	}
+	if Is(pe, InvalidCharSet) {
+		t.Error("pe should not be an InvalidCharSet")
+	}
+	if pe.Error() != "Parse error" {
+		t.Errorf("child error's message is wrong, expected: Parse error, got %v", pe.Error())
+	}
+	icse := Extend(InvalidCharSet)
+	if !Is(icse, ParseError) {
+		t.Error("icse should be a ParseError")
+	}
+	if !Is(icse, InvalidCharSet) {
+		t.Error("icse should be an InvalidCharSet")
+	}
+	if Is(icse, InvalidSyntax) {
+		t.Error("icse should not be an InvalidSyntax")
+	}
+	if icse.Underlying() != InvalidCharSet {
+		t.Error("icse's underlying error should be InvalidCharSet")
+	}
+	if icse.Error() != "Invalid charset" {
+		t.Errorf("child's message is wrong.  Expected: Invalid charset, got: %v", icse.Error())
+	}
+	if icse.HTTPCode() != 400 {
+		t.Errorf("child's http code is wrong.  Expected 400, got %v", icse.HTTPCode())
 	}
 }
 
@@ -145,28 +161,31 @@ func TestUnwrap(t *testing.T) {
 }
 
 func TestIs(t *testing.T) {
-	err := errors.New("blag")
-	copy := Copy(err)
-	if !Is(err, copy) {
-		t.Error("should have compared the wrapped err")
+	ParseError := errors.New("blag")
+	copy := Extend(ParseError)
+	if !Is(copy, ParseError) {
+		t.Error("Is(child, parent) should be true")
 	}
-	if !Is(copy, err) {
-		t.Error("order of the args shouldn't matter")
+	if Is(ParseError, copy) {
+		t.Error("Is(parent, child) should not be true")
 	}
-	if !Is(err, err) {
-		t.Error("should work even with non-richerrors")
+	if !Is(ParseError, ParseError) {
+		t.Error("errors are always themselves")
 	}
 	if !Is(copy, copy) {
 		t.Error("should work when comparing rich error to itself")
 	}
+	if Is(Extend(ParseError), copy) {
+		t.Error("Is(sibling, sibling) should not be true")
+	}
 	err2 := errors.New("blag")
-	if Is(err, err2) {
+	if Is(ParseError, err2) {
 		t.Error("These should not have been equal")
 	}
-	if Is(Copy(err2), copy) {
+	if Is(Extend(err2), copy) {
 		t.Error("these were not copies of the same error")
 	}
-	if Is(Copy(err2), err) {
+	if Is(Extend(err2), ParseError) {
 		t.Error("underlying errors were not equal")
 	}
 }
@@ -180,22 +199,25 @@ func TestHTTPCode(t *testing.T) {
 	if c := HTTPCode(err); c != 500 {
 		t.Errorf("default code for rich errors should be 500, was %d", c)
 	}
-	err.WithHTTPCode(404)
-	if c := HTTPCode(err); c != 404 {
+	errWCode := err.WithHTTPCode(404)
+	if c := HTTPCode(errWCode); c != 404 {
 		t.Errorf("the code should be set to 404, was %d", c)
+	}
+	if HTTPCode(err) != 500 {
+		t.Error("original error should not have been modified")
 	}
 }
 
 func TestOverridingMessage(t *testing.T) {
-	err := New("blug").WithMessage("blee")
+	blug := New("blug")
+	err := blug.WithMessage("blee")
 	if m := err.Error(); m != "blee" {
 		t.Errorf("should have overridden the underlying message, expecting blee, was %s", m)
 	}
-	err.WithMessage("")
-	if m := err.Error(); m != "blug" {
-		t.Errorf("should have cleared the wrapper message. expecting blug, was %s", m)
-	}
 	if m := err.WithMessagef("super %v", "stew").Error(); m != "super stew" {
 		t.Errorf("formatted message didn't work.  got %v", m)
+	}
+	if !reflect.DeepEqual(blug.Stack(), err.Stack()) {
+		t.Error("err should have the same stack as blug")
 	}
 }

@@ -20,19 +20,26 @@ Features
         err := lib.Read()
         return richerrors.Wrap(err)  // no-op if err is already a RichError
         
-* Allow golang idiom of comparing an err value to an exported value
+* Allow golang idiom of comparing an err value to an exported value, using `Is()`
 
+        var ParseError = richerrors.New("Parse error")
+        ...
+        return richerrors.Extend(ParseError) // captures a stacktrace here
+        ...
         richerrors.Is(err, ParseError)  // instead of err == ParseError
         
 * Put a new message on an error, while still using `Is()` to compare to the original error
-* `Is()` supports hierarchies of errors
+
+        return richerrors.Extend(ParseError).WithMessage("Bad input")
+        
+* Use `Extend()` and `Is()` for hierarchies of errors
 
         var ParseError = richerrors.New("Parse error")
         var InvalidCharSet = richerrors.Extend(ParseError).WithMessage("Invalid char set")
         var InvalidSyntax = richerrors.Extend(ParseError).WithMessage("Invalid syntax")
         
         func Parse(s string) error {
-            return richerrors.Copy(InvalidSyntax).WithMessagef("Invalid char set: %s", "UTF-8")
+            return richerrors.Extend(InvalidSyntax).WithMessagef("Invalid char set: %s", "UTF-8")
         }
         
         func Check() {
@@ -86,8 +93,8 @@ Example:
         // create a new error with format string, like fmt.Errorf
         err = richerrors.Errorf("bad input: %v", os.Args)
         
-        // create a copy of an error, capturing a fresh stacktrace from this callsite
-        err = richerrors.Copy(InvalidInputs)
+        // extend an error, capturing a fresh stacktrace from this callsite
+        err = richerrors.Extend(InvalidInputs)
         
         // turn any error into a RichError.  The stacktrace will be captured here if the
         // error did not already have a stacktrace attached.  If it did, this call is a no-op
@@ -102,11 +109,8 @@ Example:
         // associated an http code
         err.WithHTTPCode(400)
         
-        // Copy (used above) always captures a fresh stacktrace and a new instance
-        // of RichError
-        // Wrap converts any error to a RichError, doing nothing if the error
-        // is already a RichError.  Use it to typecast to RichError, or wrap an error
-        // from another library
+        // Wrap converts any error to a RichError.  If the error was not
+        // already a RichError, it captures a stacktrace
         perr := parser.Parse("blah")
         err = Wrap(perr, 0)
         

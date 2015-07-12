@@ -10,9 +10,9 @@ package richerrors
 //     var InvalidInputs = errors.New("Bad inputs")
 //
 // ...return copies of that error from your function, with more information in the message,
-// and a stacktrace captured at the callsite of Copy:
+// and a stacktrace captured at the callsite of Extend:
 //
-//     return richerrors.Copy(InvalidInputs).WithMessagef("Bad inputs: %v", inputs)
+//     return richerrors.Extend(InvalidInputs).WithMessagef("Bad inputs: %v", inputs)
 //
 // ...and callers can still compare the returned error to the exported error value:
 //
@@ -32,7 +32,6 @@ type (
 	richError struct {
 		err error
 		stack  []uintptr
-		frames []goerr.StackFrame
 		message string
 		httpCode int
 	}
@@ -49,11 +48,6 @@ type (
 
 	// Something which wraps an error
 	Wrapper interface {
-		// Message returns the top level error message,
-		// not including the message from the underlying
-		// error.
-		Message() string
-
 		// Underlying returns the underlying error, or nil
 		// if there is none.
 		Underlying() error
@@ -103,35 +97,28 @@ func Wrap(e error, skip int) RichError {
 	}
 }
 
-// Create a RichError copy of e.
-// If e not a RichError, this function will
-// work just like Wrap().
-// If e is a RichError, create a new RichError, copying
-// the underlying error, code, and override message (if
-// any) from e, but capture a new stacktrace.
-func Copy(e error) RichError {
-	err := Unwrap(e)
-	re := &richError{
-		err:err,
-		stack: captureStack(1),
-		httpCode: HTTPCode(e),
-	}
-	if w, ok := e.(Wrapper); ok {
-		re.message = w.Message()
-	}
-	return re
-}
-
-// Create a new error with extends another error.  `Is()` will
-// return true for all errors which extend the parent error.
-// Currently, this is just a synonym for Copy
+// Create a new error with extends another error.
+// A new stack is captured at the call site of Extend()
+// `Is(Extend(e), e)` will be true
 func Extend(e error) RichError {
-	return Copy(e)
+	return &richError{
+		err: e,
+		stack: captureStack(1),
+	}
 }
 
-// Check whether e is equal to or a copy of original.
+// Check whether e is equal or extends the original.
 func Is(e error, original error) bool {
-	return e == original || Unwrap(e) == Unwrap(original)
+	for {
+		if e == original {
+			return true
+		}
+		w, ok := e.(Wrapper)
+		if !ok {
+			return false
+		}
+		e = w.Underlying()
+	}
 }
 
 // Convert an error to an http status code.  All errors
@@ -187,11 +174,6 @@ func (e *richError) Error() string {
 }
 
 // implement Wrapper interface
-func (e *richError) Message() string {
-	return e.message
-}
-
-// implement Wrapper interface
 func (e *richError) Underlying() error {
 	return e.err
 }
@@ -201,24 +183,35 @@ func (e *richError) HTTPCode() int {
 	if e.httpCode > 0 {
 		return e.httpCode
 	}
-	return 500
+	return HTTPCode(e.Underlying())
 }
 
 func (e *richError) Stack() []uintptr {
+	if e.stack == nil {
+		if e, ok := e.err.(Stacker); ok {
+			return e.Stack()
+		}
+	}
 	return e.stack
 }
 
 func (e *richError) WithHTTPCode(code int) RichError {
-	e.httpCode = code
-	return e
+	return &richError{
+		err: e,
+		httpCode: code,
+	}
 }
 
 func (e *richError) WithMessage(msg string) RichError {
-	e.message = msg
-	return e
+	return &richError{
+		err: e,
+		message: msg,
+	}
 }
 
 func (e *richError) WithMessagef(format string, a ...interface{}) RichError {
-	e.message = fmt.Sprintf(format, a...)
-	return e
+	return &richError{
+		err: e,
+		message: fmt.Sprintf(format, a...),
+	}
 }
