@@ -1,11 +1,12 @@
 package richerrors
+
 import (
-	"testing"
-	"strings"
 	"errors"
-	"runtime"
 	"fmt"
 	"reflect"
+	"runtime"
+	"strings"
+	"testing"
 )
 
 func TestNew(t *testing.T) {
@@ -21,8 +22,8 @@ func TestNew(t *testing.T) {
 	if !strings.Contains(f, "errors_test.go") {
 		t.Errorf("error message should have contained errors_test.go, was %s", f)
 	}
-	if l != rl + 1 {
-		t.Errorf("error line should have been %d, was %d", rl + 1, 8)
+	if l != rl+1 {
+		t.Errorf("error line should have been %d, was %d", rl+1, 8)
 	}
 }
 
@@ -39,8 +40,8 @@ func TestErrorf(t *testing.T) {
 	if !strings.Contains(f, "errors_test.go") {
 		t.Errorf("error message should have contained errors_test.go, was %s", f)
 	}
-	if l != rl + 1 {
-		t.Errorf("error line should have been %d, was %d", rl + 1, 8)
+	if l != rl+1 {
+		t.Errorf("error line should have been %d, was %d", rl+1, 8)
 	}
 }
 
@@ -73,7 +74,7 @@ func TestStacktrace(t *testing.T) {
 	if len(lines) < 1 {
 		t.Fatalf("stacktrace is empty")
 	}
-	if !strings.Contains(lines[0], fmt.Sprintf("errors_test.go:%d", rl + 1)) {
+	if !strings.Contains(lines[0], fmt.Sprintf("errors_test.go:%d", rl+1)) {
 		t.Fatalf("stacktrace is wrong")
 	}
 }
@@ -86,8 +87,8 @@ func TestWrap(t *testing.T) {
 	if !strings.Contains(f, "errors_test.go") {
 		t.Errorf("error message should have contained errors_test.go, was %s", f)
 	}
-	if l != rl + 1 {
-		t.Errorf("error line should have been %d, was %d", rl + 1, l)
+	if l != rl+1 {
+		t.Errorf("error line should have been %d, was %d", rl+1, l)
 	}
 
 	rich2 := Wrap(rich, 0)
@@ -112,8 +113,8 @@ func TestExtend(t *testing.T) {
 	_, _, rl, _ := runtime.Caller(0)
 	pe := Extend(ParseError)
 	_, l := Location(pe)
-	if l != rl + 1 {
-		t.Errorf("Extend should capture a new stack.  Expected %d, got %d", rl + 1, l)
+	if l != rl+1 {
+		t.Errorf("Extend should capture a new stack.  Expected %d, got %d", rl+1, l)
 	}
 
 	if !Is(pe, ParseError) {

@@ -1,8 +1,8 @@
 package richerrors
 
 import (
-	goerr "github.com/go-errors/errors"
 	"bytes"
+	goerr "github.com/go-errors/errors"
 )
 
 // Returns the error's stacktrace as a string formatted

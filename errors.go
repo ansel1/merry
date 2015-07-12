@@ -19,10 +19,10 @@ package richerrors
 //     if richerrors.Is(err, InvalidInputs) {
 //
 import (
-	goerr "github.com/go-errors/errors"
-	"runtime"
 	"errors"
 	"fmt"
+	goerr "github.com/go-errors/errors"
+	"runtime"
 )
 
 // The maximum number of stackframes on any error.
@@ -30,9 +30,9 @@ var MaxStackDepth = 50
 
 type (
 	richError struct {
-		err error
-		stack  []uintptr
-		message string
+		err      error
+		stack    []uintptr
+		message  string
 		httpCode int
 	}
 
@@ -92,8 +92,8 @@ func Wrap(e error, skip int) RichError {
 		return re
 	}
 	return &richError{
-		err: e,
-		stack: captureStack(skip+1),
+		err:   e,
+		stack: captureStack(skip + 1),
 	}
 }
 
@@ -102,7 +102,7 @@ func Wrap(e error, skip int) RichError {
 // `Is(Extend(e), e)` will be true
 func Extend(e error) RichError {
 	return &richError{
-		err: e,
+		err:   e,
 		stack: captureStack(1),
 	}
 }
@@ -197,21 +197,21 @@ func (e *richError) Stack() []uintptr {
 
 func (e *richError) WithHTTPCode(code int) RichError {
 	return &richError{
-		err: e,
+		err:      e,
 		httpCode: code,
 	}
 }
 
 func (e *richError) WithMessage(msg string) RichError {
 	return &richError{
-		err: e,
+		err:     e,
 		message: msg,
 	}
 }
 
 func (e *richError) WithMessagef(format string, a ...interface{}) RichError {
 	return &richError{
-		err: e,
+		err:     e,
 		message: fmt.Sprintf(format, a...),
 	}
 }
