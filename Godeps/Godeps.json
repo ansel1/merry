@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/ansel1/richerrors",
+	"ImportPath": "github.com/ansel1/merry",
 	"GoVersion": "go1.4.2",
 	"Deps": [
 		{

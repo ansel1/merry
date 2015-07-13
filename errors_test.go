@@ -1,4 +1,4 @@
-package richerrors
+package merry
 
 import (
 	"errors"
@@ -12,8 +12,8 @@ import (
 func TestNew(t *testing.T) {
 	_, _, rl, _ := runtime.Caller(0)
 	err := New("bang")
-	if err.HTTPCode() != 500 {
-		t.Errorf("http code should have been 500, was %v", err.HTTPCode())
+	if HTTPCode(err) != 500 {
+		t.Errorf("http code should have been 500, was %v", HTTPCode(err))
 	}
 	if err.Error() != "bang" {
 		t.Errorf("error message should have been bang, was %v", err.Error())
@@ -30,8 +30,8 @@ func TestNew(t *testing.T) {
 func TestErrorf(t *testing.T) {
 	_, _, rl, _ := runtime.Caller(0)
 	err := Errorf("chitty chitty %v %v", "bang", "bang")
-	if err.HTTPCode() != 500 {
-		t.Errorf("http code should have been 500, was %v", err.HTTPCode())
+	if HTTPCode(err) != 500 {
+		t.Errorf("http code should have been 500, was %v", HTTPCode(err))
 	}
 	if err.Error() != "chitty chitty bang bang" {
 		t.Errorf("error message should have been chitty chitty bang bang, was %v", err.Error())
@@ -61,11 +61,7 @@ func TestDetails(t *testing.T) {
 func TestStacktrace(t *testing.T) {
 	_, _, rl, _ := runtime.Caller(0)
 	var err error = New("bang")
-	st, ok := err.(Stacker)
-	if !ok {
-		t.Fatalf("err doesn't implement Stacker")
-	}
-	if !(len(st.Stack()) > 0) {
+	if !(len(Stack(err)) > 0) {
 		t.Fatalf("stack length is 0")
 	}
 	s := Stacktrace(err)
@@ -82,8 +78,8 @@ func TestStacktrace(t *testing.T) {
 func TestWrap(t *testing.T) {
 	var err error = errors.New("simple")
 	_, _, rl, _ := runtime.Caller(0)
-	var rich RichError = Wrap(err, 0)
-	f, l := Location(rich)
+	wrapped := WrapSkipping(err, 0)
+	f, l := Location(wrapped)
 	if !strings.Contains(f, "errors_test.go") {
 		t.Errorf("error message should have contained errors_test.go, was %s", f)
 	}
@@ -91,11 +87,11 @@ func TestWrap(t *testing.T) {
 		t.Errorf("error line should have been %d, was %d", rl+1, l)
 	}
 
-	rich2 := Wrap(rich, 0)
-	if rich != rich2 {
+	rich2 := WrapSkipping(wrapped, 0)
+	if wrapped != rich2 {
 		t.Error("rich and rich2 are not the same.  Wrap should have been no-op if rich was already a RichError")
 	}
-	if !reflect.DeepEqual(rich.Stack(), rich2.Stack()) {
+	if !reflect.DeepEqual(Stack(wrapped), Stack(rich2)) {
 		t.Log(Details(rich2))
 		t.Error("wrap should have left the stacktrace alone if the original error already had a stack")
 	}
@@ -103,15 +99,15 @@ func TestWrap(t *testing.T) {
 
 func TestExtend(t *testing.T) {
 	ParseError := New("Parse error")
-	InvalidCharSet := Extend(ParseError).WithMessage("Invalid charset").WithHTTPCode(400)
-	InvalidSyntax := Extend(ParseError)
+	InvalidCharSet := WithMessage(ParseError, "Invalid charset").WithHTTPCode(400)
+	InvalidSyntax := ParseError.WithMessage("Syntax error")
 
 	if !Is(InvalidCharSet, ParseError) {
 		t.Error("InvalidCharSet should be a ParseError")
 	}
 
 	_, _, rl, _ := runtime.Caller(0)
-	pe := Extend(ParseError)
+	pe := WithStack(ParseError)
 	_, l := Location(pe)
 	if l != rl+1 {
 		t.Errorf("Extend should capture a new stack.  Expected %d, got %d", rl+1, l)
@@ -126,7 +122,7 @@ func TestExtend(t *testing.T) {
 	if pe.Error() != "Parse error" {
 		t.Errorf("child error's message is wrong, expected: Parse error, got %v", pe.Error())
 	}
-	icse := Extend(InvalidCharSet)
+	icse := WithStack(InvalidCharSet)
 	if !Is(icse, ParseError) {
 		t.Error("icse should be a ParseError")
 	}
@@ -136,26 +132,22 @@ func TestExtend(t *testing.T) {
 	if Is(icse, InvalidSyntax) {
 		t.Error("icse should not be an InvalidSyntax")
 	}
-	if icse.Underlying() != InvalidCharSet {
-		t.Error("icse's underlying error should be InvalidCharSet")
-	}
 	if icse.Error() != "Invalid charset" {
 		t.Errorf("child's message is wrong.  Expected: Invalid charset, got: %v", icse.Error())
 	}
-	if icse.HTTPCode() != 400 {
-		t.Errorf("child's http code is wrong.  Expected 400, got %v", icse.HTTPCode())
+	if HTTPCode(icse) != 400 {
+		t.Errorf("child's http code is wrong.  Expected 400, got %v", HTTPCode(icse))
 	}
 }
 
 func TestUnwrap(t *testing.T) {
 	inner := errors.New("bing")
-	wrapper := Wrap(inner, 0)
+	wrapper := WrapSkipping(inner, 0)
 	if Unwrap(wrapper) != inner {
 		t.Errorf("unwrapped error should have been the inner err, was %#v", inner)
 	}
 
-	doubleWrap := New("blag")
-	doubleWrap.(*richError).err = wrapper
+	doubleWrap := wrapper.WithMessage("blag")
 	if Unwrap(doubleWrap) != inner {
 		t.Errorf("unwrapped should recurse to inner, but got %#v", inner)
 	}
@@ -163,7 +155,7 @@ func TestUnwrap(t *testing.T) {
 
 func TestIs(t *testing.T) {
 	ParseError := errors.New("blag")
-	copy := Extend(ParseError)
+	copy := WithStack(ParseError)
 	if !Is(copy, ParseError) {
 		t.Error("Is(child, parent) should be true")
 	}
@@ -176,17 +168,17 @@ func TestIs(t *testing.T) {
 	if !Is(copy, copy) {
 		t.Error("should work when comparing rich error to itself")
 	}
-	if Is(Extend(ParseError), copy) {
+	if Is(WithStack(ParseError), copy) {
 		t.Error("Is(sibling, sibling) should not be true")
 	}
 	err2 := errors.New("blag")
 	if Is(ParseError, err2) {
 		t.Error("These should not have been equal")
 	}
-	if Is(Extend(err2), copy) {
+	if Is(WithStack(err2), copy) {
 		t.Error("these were not copies of the same error")
 	}
-	if Is(Extend(err2), ParseError) {
+	if Is(WithStack(err2), ParseError) {
 		t.Error("underlying errors were not equal")
 	}
 }
@@ -218,7 +210,7 @@ func TestOverridingMessage(t *testing.T) {
 	if m := err.WithMessagef("super %v", "stew").Error(); m != "super stew" {
 		t.Errorf("formatted message didn't work.  got %v", m)
 	}
-	if !reflect.DeepEqual(blug.Stack(), err.Stack()) {
+	if !reflect.DeepEqual(Stack(blug), Stack(err)) {
 		t.Error("err should have the same stack as blug")
 	}
 }
