@@ -38,7 +38,7 @@ always creates a new error which wraps the original.
     ```go
     var ParseError = merry.New("Parse error")
     // ...
-    return merry.WithStack(ParseError) // captures a stacktrace here
+    return ParseError.Here() // captures a stacktrace here
     // ...
     merry.Is(err, ParseError)  // instead of err == ParseError
     ```

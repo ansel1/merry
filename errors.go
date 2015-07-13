@@ -195,6 +195,11 @@ func (e *Error) WithValue(key, value interface{}) *Error {
 	}
 }
 
+// Shorthand for capturing a new stack trace
+func (e *Error) Here() *Error {
+	return e.WithStackSkipping(1)
+}
+
 // return a new error with a new stack capture
 func (e *Error) WithStackSkipping(skip int) *Error {
 	return &Error{
