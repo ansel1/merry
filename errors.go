@@ -39,15 +39,15 @@ var MaxStackDepth = 50
 type errorProperty string
 
 const (
-	stack errorProperty = "stack"
-	message = "message"
-	httpCode = "http status code"
+	stack    errorProperty = "stack"
+	message                = "message"
+	httpCode               = "http status code"
 )
 
 type Error struct {
-		err error
-		key, value interface{}
-	}
+	err        error
+	key, value interface{}
+}
 
 // Create a new error, with a stack attached.  The equivalent of golang's errors.New()
 func New(msg string) *Error {
@@ -71,8 +71,8 @@ func WrapSkipping(e error, skip int) *Error {
 		return re
 	}
 	return &Error{
-		err:e,
-		key: stack,
+		err:   e,
+		key:   stack,
 		value: captureStack(skip + 1),
 	}
 }
@@ -189,8 +189,8 @@ func (e *Error) Error() string {
 // return a new error with additional context
 func (e *Error) WithValue(key, value interface{}) *Error {
 	return &Error{
-		err: e,
-		key: key,
+		err:   e,
+		key:   key,
 		value: value,
 	}
 }
@@ -204,7 +204,7 @@ func (e *Error) Here() *Error {
 func (e *Error) WithStackSkipping(skip int) *Error {
 	return &Error{
 		err:   e,
-		key: stack,
+		key:   stack,
 		value: captureStack(skip + 1),
 	}
 }
