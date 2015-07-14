@@ -67,7 +67,7 @@ Details
         // use chainable methods to add context
         return InvalidCharSet.Here().WithMessagef("Invalid char set: %s", "UTF-8")
         // or functions
-        // return merry.WithMessagef(merry.WithStack(InvalidCharSet), "Invalid char set: %s", "UTF-8")
+        // return merry.WithMessagef(merry.Here(InvalidCharSet), "Invalid char set: %s", "UTF-8")
     }
     
     func Check() {
@@ -133,7 +133,7 @@ func main() {
     err = merry.Errorf("bad input: %v", os.Args)
     
     // capture a fresh stacktrace from this callsite
-    err = merry.WithStack(InvalidInputs)
+    err = merry.Here(InvalidInputs)
     
     // Make err merry if it wasn't already.  The stacktrace will be captured here if the
     // error didn't already have one.  Also useful to cast to *Error 

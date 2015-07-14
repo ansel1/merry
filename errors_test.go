@@ -107,7 +107,7 @@ func TestExtend(t *testing.T) {
 	}
 
 	_, _, rl, _ := runtime.Caller(0)
-	pe := WithStack(ParseError)
+	pe := Here(ParseError)
 	_, l := Location(pe)
 	if l != rl+1 {
 		t.Errorf("Extend should capture a new stack.  Expected %d, got %d", rl+1, l)
@@ -122,7 +122,7 @@ func TestExtend(t *testing.T) {
 	if pe.Error() != "Parse error" {
 		t.Errorf("child error's message is wrong, expected: Parse error, got %v", pe.Error())
 	}
-	icse := WithStack(InvalidCharSet)
+	icse := Here(InvalidCharSet)
 	if !Is(icse, ParseError) {
 		t.Error("icse should be a ParseError")
 	}
@@ -155,7 +155,7 @@ func TestUnwrap(t *testing.T) {
 
 func TestIs(t *testing.T) {
 	ParseError := errors.New("blag")
-	copy := WithStack(ParseError)
+	copy := Here(ParseError)
 	if !Is(copy, ParseError) {
 		t.Error("Is(child, parent) should be true")
 	}
@@ -168,17 +168,17 @@ func TestIs(t *testing.T) {
 	if !Is(copy, copy) {
 		t.Error("should work when comparing rich error to itself")
 	}
-	if Is(WithStack(ParseError), copy) {
+	if Is(Here(ParseError), copy) {
 		t.Error("Is(sibling, sibling) should not be true")
 	}
 	err2 := errors.New("blag")
 	if Is(ParseError, err2) {
 		t.Error("These should not have been equal")
 	}
-	if Is(WithStack(err2), copy) {
+	if Is(Here(err2), copy) {
 		t.Error("these were not copies of the same error")
 	}
-	if Is(WithStack(err2), ParseError) {
+	if Is(Here(err2), ParseError) {
 		t.Error("underlying errors were not equal")
 	}
 }

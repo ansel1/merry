@@ -13,9 +13,9 @@ package merry
 //
 //     var InvalidInputs = errors.New("Bad inputs")
 //
-// `WithStack()` captures a new stacktrace, and WithMessagef() sets a new error message:
+// `Here()` captures a new stacktrace, and WithMessagef() sets a new error message:
 //
-//     return merry.WithStack(InvalidInputs).WithMessagef("Bad inputs: %v", inputs)
+//     return merry.Here(InvalidInputs).WithMessagef("Bad inputs: %v", inputs)
 //
 // Errors are immutable.  All functions and methods which add context return new errors.
 // But errors can still be compared to the originals with `Is()`
@@ -97,9 +97,9 @@ func Value(e error, key interface{}) interface{} {
 	}
 }
 
-// Attach a new stack to the error, at the call site of WithStack().
+// Attach a new stack to the error, at the call site of Here().
 // Useful when returning copies of exported package errors
-func WithStack(e error) *Error {
+func Here(e error) *Error {
 	// optimization: only capture the stack once, since its expensive
 	if re, ok := e.(*Error); ok {
 		return re.WithStackSkipping(1)
