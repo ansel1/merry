@@ -19,13 +19,19 @@ Merry errors wrap normal errors with a context of key/value pairs.
 Like contexts, merry errors are immutable: adding a key/value to an error
 always creates a new error which wraps the original.  
 
-`merry` comes with built-in support for some context information:
+`merry` comes with built-in support for adding information to errors:
 
 * stacktraces
 * overriding the error message
 * HTTP status codes
+ 
+You can also add your own additional information.
+
+Details
+-------
+
 * New errors have a stacktrace captured where they are created
-* Wrap existing errors with a stacktrace (captured where they are wrapped)
+* Add a stacktrace to existing errors (captured where they are wrapped)
 
     ```go
     err := lib.Read()
@@ -36,16 +42,18 @@ always creates a new error which wraps the original.
 
     ```go
     var ParseError = merry.New("Parse error")
-    // ...
-    return ParseError.Here() // captures a stacktrace here
-    // ...
-    merry.Is(err, ParseError)  // instead of err == ParseError
+    
+    func Parse() error {
+        err := ParseError.Here() // captures a stacktrace here
+        merry.Is(err, ParseError)  // instead of err == ParseError
+    }
     ```
         
-* Change the error on an error, while still using `Is()` to compare to the original error
+* Change the message on an error, while still using `Is()` to compare to the original error
 
     ```go
-    return merry.WithMessage(ParseError, "Bad input")
+    err := merry.WithMessage(ParseError, "Bad input")
+    merry.Is(err, ParseError) // yes it is
     ```
         
 * `Is()` supports hierarchies of errors
@@ -57,9 +65,9 @@ always creates a new error which wraps the original.
     
     func Parse(s string) error {
         // use chainable methods to add context
-        return InvalidSyntax.WithMessagef("Invalid char set: %s", "UTF-8")
+        return InvalidCharSet.Here().WithMessagef("Invalid char set: %s", "UTF-8")
         // or functions
-        // return merry.WithMessagef(InvalidSyntax, "Invalid char set: %s", "UTF-8")
+        // return merry.WithMessagef(merry.WithStack(InvalidCharSet), "Invalid char set: %s", "UTF-8")
     }
     
     func Check() {
@@ -74,7 +82,7 @@ always creates a new error which wraps the original.
 
     ```go
     merry.HTTPCode(errors.New("regular error")) // 500
-    merry.HTTPCode(merry.New("rich error").WithHTTPCode(404)) // 404
+    merry.HTTPCode(merry.New("merry error").WithHTTPCode(404)) // 404
     ```
         
 * Functions for printing error details
