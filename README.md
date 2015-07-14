@@ -24,7 +24,6 @@ always creates a new error which wraps the original.
 * stacktraces
 * overriding the error message
 * HTTP status codes
-
 * New errors have a stacktrace captured where they are created
 * Wrap existing errors with a stacktrace (captured where they are wrapped)
 
