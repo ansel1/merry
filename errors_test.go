@@ -3,6 +3,7 @@ package merry
 import (
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"runtime"
 	"strings"
@@ -56,6 +57,8 @@ func TestDetails(t *testing.T) {
 	if !strings.Contains(deets, Stacktrace(err)) {
 		t.Errorf("should have contained the error stacktrace")
 	}
+	// Allow nil error
+	assert.Empty(t, Details(nil))
 }
 
 func TestStacktrace(t *testing.T) {
@@ -73,6 +76,8 @@ func TestStacktrace(t *testing.T) {
 	if !strings.Contains(lines[0], fmt.Sprintf("errors_test.go:%d", rl+1)) {
 		t.Fatalf("stacktrace is wrong")
 	}
+	// Allow nil error
+	assert.Empty(t, Stacktrace(nil))
 }
 
 func TestWrap(t *testing.T) {
@@ -95,9 +100,12 @@ func TestWrap(t *testing.T) {
 		t.Log(Details(rich2))
 		t.Error("wrap should have left the stacktrace alone if the original error already had a stack")
 	}
+	// wrapping nil -> nil
+	assert.Nil(t, Wrap(nil))
+	assert.Nil(t, WrapSkipping(nil, 1))
 }
 
-func TestExtend(t *testing.T) {
+func TestHere(t *testing.T) {
 	ParseError := New("Parse error")
 	InvalidCharSet := WithMessage(ParseError, "Invalid charset").WithHTTPCode(400)
 	InvalidSyntax := ParseError.WithMessage("Syntax error")
@@ -138,6 +146,9 @@ func TestExtend(t *testing.T) {
 	if HTTPCode(icse) != 400 {
 		t.Errorf("child's http code is wrong.  Expected 400, got %v", HTTPCode(icse))
 	}
+
+	// nil -> nil
+	assert.Nil(t, Here(nil))
 }
 
 func TestUnwrap(t *testing.T) {
@@ -151,6 +162,9 @@ func TestUnwrap(t *testing.T) {
 	if Unwrap(doubleWrap) != inner {
 		t.Errorf("unwrapped should recurse to inner, but got %#v", inner)
 	}
+
+	// nil -> nil
+	assert.Nil(t, Unwrap(nil))
 }
 
 func TestIs(t *testing.T) {
@@ -181,6 +195,19 @@ func TestIs(t *testing.T) {
 	if Is(Here(err2), ParseError) {
 		t.Error("underlying errors were not equal")
 	}
+
+	nilTests := []struct {
+		arg1, arg2 error
+		expect     bool
+		msg        string
+	}{
+		{nil, New("t"), false, "nil is not any concrete error"},
+		{New("t"), nil, false, "no concrete error is nil"},
+		{nil, nil, true, "nil is nil"},
+	}
+	for _, tst := range nilTests {
+		assert.Equal(t, tst.expect, Is(tst.arg1, tst.arg2), tst.msg)
+	}
 }
 
 func TestHTTPCode(t *testing.T) {
@@ -199,6 +226,10 @@ func TestHTTPCode(t *testing.T) {
 	if HTTPCode(err) != 500 {
 		t.Error("original error should not have been modified")
 	}
+
+	// nil -> nil
+	assert.Nil(t, WithHTTPCode(nil, 404))
+	assert.Equal(t, 200, HTTPCode(nil), "The code for nil is 200 (ok)")
 }
 
 func TestOverridingMessage(t *testing.T) {
@@ -213,4 +244,37 @@ func TestOverridingMessage(t *testing.T) {
 	if !reflect.DeepEqual(Stack(blug), Stack(err)) {
 		t.Error("err should have the same stack as blug")
 	}
+
+	// nil -> nil
+	assert.Nil(t, WithMessage(nil, ""))
+	assert.Nil(t, WithMessagef(nil, "", ""))
+}
+
+func TestAppend(t *testing.T) {
+	blug := New("blug")
+	err := blug.Append("blog")
+	assert.Equal(t, err.Error(), "blug: blog")
+	err = Append(err, "blig")
+	assert.Equal(t, err.Error(), "blug: blog: blig")
+	err = blug.Appendf("%s", "blog")
+	assert.Equal(t, err.Error(), "blug: blog")
+	err = Appendf(err, "%s", "blig")
+	assert.Equal(t, err.Error(), "blug: blog: blig")
+
+	// nil -> nil
+	assert.Nil(t, Append(nil, ""))
+	assert.Nil(t, Appendf(nil, "", ""))
+}
+
+func TestLocation(t *testing.T) {
+	// nil -> nil
+	f, l := Location(nil)
+	assert.Equal(t, "unknown", f)
+	assert.Equal(t, 0, l)
+}
+
+func TestValue(t *testing.T) {
+	// nil -> nil
+	assert.Nil(t, WithValue(nil, "", ""))
+	assert.Nil(t, Value(nil, ""))
 }

@@ -34,6 +34,9 @@ func Stacktrace(e error) string {
 // Returns e.Error() and e's stacktrace.
 // If e has no stacktrace, this is identical to e.Error()
 func Details(e error) string {
+	if e == nil {
+		return ""
+	}
 	msg := e.Error()
 	s := Stacktrace(e)
 	if s != "" {
