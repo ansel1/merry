@@ -292,7 +292,7 @@ func TestAppend(t *testing.T) {
 func TestLocation(t *testing.T) {
 	// nil -> nil
 	f, l := Location(nil)
-	assert.Equal(t, "unknown", f)
+	assert.Equal(t, "", f)
 	assert.Equal(t, 0, l)
 }
 

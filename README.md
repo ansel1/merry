@@ -160,7 +160,6 @@ func main() {
     s := merry.Stacktrace(err)
 
     // Get the location of the error (the first line in the stacktrace)
-    // File will be "unknown" if the err is not a RichError
     file, line := merry.Location(err)
     
     // Get an HTTP status code for an error.  Defaults to 500.

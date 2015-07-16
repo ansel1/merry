@@ -7,14 +7,14 @@ import (
 	goerr "github.com/go-errors/errors"
 )
 
-// Returns "unknown" if e has no stacktrace
+// Returns zero values if e has no stacktrace
 func Location(e error) (file string, line int) {
 	s := Stack(e)
 	if len(s) > 0 {
 		sf := goerr.NewStackFrame(s[0])
 		return sf.File, sf.LineNumber
 	}
-	return "unknown", 0
+	return "", 0
 }
 
 // SourceLine returns the string representation of
