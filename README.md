@@ -1,4 +1,4 @@
-merry
+merry [![Build Status](https://travis-ci.org/ansel1/merry.svg?branch=master)](https://travis-ci.org/ansel1/merry)
 =====
 
 Make your golang errors merry, with stacktraces, inheritance, and arbitrary additional context.
