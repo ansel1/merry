@@ -2,6 +2,8 @@ package merry
 
 import (
 	"bytes"
+	"fmt"
+
 	goerr "github.com/go-errors/errors"
 )
 
@@ -13,6 +15,17 @@ func Location(e error) (file string, line int) {
 		return sf.File, sf.LineNumber
 	}
 	return "unknown", 0
+}
+
+// SourceLine returns the string representation of
+// Location's result or an empty string if there's
+// no stracktrace.
+func SourceLine(e error) string {
+	file, line := Location(e)
+	if line != 0 {
+		return fmt.Sprintf("%s:%d", file, line)
+	}
+	return ""
 }
 
 // Returns the error's stacktrace as a string formatted
