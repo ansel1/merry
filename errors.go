@@ -91,9 +91,6 @@ func WithValue(e error, key, value interface{}) Error {
 
 // Return the value for key, or nil if not set
 func Value(e error, key interface{}) interface{} {
-	if e == nil {
-		return nil
-	}
 	for {
 		switch m := e.(type) {
 		case nil:
