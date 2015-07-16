@@ -167,6 +167,27 @@ func TestUnwrap(t *testing.T) {
 	assert.Nil(t, Unwrap(nil))
 }
 
+func TestNilValues(t *testing.T) {
+	// Quirk of go
+	// http://devs.cloudimmunity.com/gotchas-and-common-mistakes-in-go-golang/index.html#nil_in_nil_in_vals
+	// an interface value isn't nil unless both the type *and* the value are nil
+	// make sure we aren't accidentally returning nil values but non-nil types
+	type e struct{}
+	var anE *e
+	type f interface{}
+	var anF f
+	if anF != nil {
+		t.Error("anF should have been nil here, because it doesn't have a concete type yet")
+	}
+	anF = anE
+	if anF == nil {
+		t.Error("anF should have been not nil here, because it now has a concrete type")
+	}
+	if Wrap(nil).WithHTTPCode(400).WithMessage("hey") != nil {
+		t.Error("by using interfaces in all the returns, this should have remained a true nil value")
+	}
+}
+
 func TestIs(t *testing.T) {
 	ParseError := errors.New("blag")
 	copy := Here(ParseError)

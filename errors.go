@@ -36,53 +36,53 @@ import (
 // The maximum number of stackframes on any error.
 var MaxStackDepth = 50
 
-type errorProperty string
-
-const (
-	stack    errorProperty = "stack"
-	message                = "message"
-	httpCode               = "http status code"
-)
-
-type Error struct {
-	err        error
-	key, value interface{}
+type Error interface {
+	error
+	Appendf(format string, args ...interface{}) Error
+	Append(msg string) Error
+	WithMessage(msg string) Error
+	WithMessagef(format string, args ...interface{}) Error
+	WithValue(key, value interface{}) Error
+	Here() Error
+	WithStackSkipping(skip int) Error
+	WithHTTPCode(code int) Error
 }
 
 // Create a new error, with a stack attached.  The equivalent of golang's errors.New()
-func New(msg string) *Error {
+func New(msg string) Error {
 	return WrapSkipping(errors.New(msg), 1)
 }
 
 // Create a new error with a formatted message and a stack.  The equivalent of golang's fmt.Errorf()
-func Errorf(format string, a ...interface{}) *Error {
+func Errorf(format string, a ...interface{}) Error {
 	return WrapSkipping(fmt.Errorf(format, a...), 1)
 }
 
 // Cast e to *Error, or wrap e in a new *Error with stack
-func Wrap(e error) *Error {
+func Wrap(e error) Error {
 	return WrapSkipping(e, 1)
 }
 
 // Cast e to *Error, or wrap e in a new *Error with stack
 // Skip `skip` frames (0 is the call site of `WrapSkipping()`)
-func WrapSkipping(e error, skip int) *Error {
+func WrapSkipping(e error, skip int) Error {
 	switch e1 := e.(type) {
 	case nil:
 		return nil
-	case *Error:
+	case *merryErr:
 		return e1
-	}
-	return &Error{
-		err:   e,
-		key:   stack,
-		value: captureStack(skip + 1),
+	default:
+		return &merryErr{
+			err:   e,
+			key:   stack,
+			value: captureStack(skip + 1),
+		}
 	}
 }
 
 // Add a context an error.  If the key was already set on e,
 // the new value will take precedence.
-func WithValue(e error, key, value interface{}) *Error {
+func WithValue(e error, key, value interface{}) Error {
 	return Wrap(e).WithValue(key, value)
 }
 
@@ -92,26 +92,32 @@ func Value(e error, key interface{}) interface{} {
 		return nil
 	}
 	for {
-		m, ok := e.(*Error)
-		if !ok {
+		switch m := e.(type) {
+		case nil:
+			return nil
+		case *merryErr:
+			if m.key == key {
+				return m.value
+			}
+			e = m.err
+		default:
 			return nil
 		}
-		if m.key == key {
-			return m.value
-		}
-		e = m.err
 	}
 }
 
 // Attach a new stack to the error, at the call site of Here().
 // Useful when returning copies of exported package errors
-func Here(e error) *Error {
-	switch e1 := e.(type) {
-	case *Error:
+func Here(e error) Error {
+	switch m := e.(type) {
+	case nil:
+		return nil
+	case *merryErr:
 		// optimization: only capture the stack once, since its expensive
-		return e1.WithStackSkipping(1)
+		return m.WithStackSkipping(1)
+	default:
+		return WrapSkipping(e, 1)
 	}
-	return WrapSkipping(e, 1)
 }
 
 // Return the stack attached to an error, or nil if one is not attached
@@ -121,7 +127,7 @@ func Stack(e error) []uintptr {
 }
 
 // Return an error with an http code attached.
-func WithHTTPCode(e error, code int) *Error {
+func WithHTTPCode(e error, code int) Error {
 	return Wrap(e).WithHTTPCode(code)
 }
 
@@ -141,20 +147,20 @@ func HTTPCode(e error) int {
 // Override the message of error.
 // The resulting error's Error() method will return
 // the new message
-func WithMessage(e error, msg string) *Error {
+func WithMessage(e error, msg string) Error {
 	return Wrap(e).WithValue(message, msg)
 }
 
 // Same as WithMessage(), using fmt.Sprint()
-func WithMessagef(e error, format string, a ...interface{}) *Error {
+func WithMessagef(e error, format string, a ...interface{}) Error {
 	return Wrap(e).WithMessagef(format, a...)
 }
 
-func Append(e error, msg string) *Error {
+func Append(e error, msg string) Error {
 	return Wrap(e).Append(msg)
 }
 
-func Appendf(e error, format string, args ...interface{}) *Error {
+func Appendf(e error, format string, args ...interface{}) Error {
 	return Wrap(e).Appendf(format, args...)
 }
 
@@ -167,7 +173,7 @@ func Is(e error, original error) bool {
 		if e == nil || original == nil {
 			return false
 		}
-		w, ok := e.(*Error)
+		w, ok := e.(*merryErr)
 		if !ok {
 			return false
 		}
@@ -184,7 +190,7 @@ func Unwrap(e error) error {
 		return nil
 	}
 	for {
-		w, ok := e.(*Error)
+		w, ok := e.(*merryErr)
 		if !ok {
 			return e
 		}
@@ -199,10 +205,23 @@ func captureStack(skip int) []uintptr {
 	return stack[:length]
 }
 
+type errorProperty string
+
+const (
+	stack    errorProperty = "stack"
+	message                = "message"
+	httpCode               = "http status code"
+)
+
+type merryErr struct {
+	err        error
+	key, value interface{}
+}
+
 // implements golang's error interface
 // returns the message value if set, otherwise
 // delegates to inner error
-func (e *Error) Error() string {
+func (e *merryErr) Error() string {
 	m, _ := Value(e, message).(string)
 	if m == "" {
 		return Unwrap(e).Error()
@@ -211,11 +230,11 @@ func (e *Error) Error() string {
 }
 
 // return a new error with additional context
-func (e *Error) WithValue(key, value interface{}) *Error {
+func (e *merryErr) WithValue(key, value interface{}) Error {
 	if e == nil {
 		return nil
 	}
-	return &Error{
+	return &merryErr{
 		err:   e,
 		key:   key,
 		value: value,
@@ -223,7 +242,7 @@ func (e *Error) WithValue(key, value interface{}) *Error {
 }
 
 // Shorthand for capturing a new stack trace
-func (e *Error) Here() *Error {
+func (e *merryErr) Here() Error {
 	if e == nil {
 		return nil
 	}
@@ -231,11 +250,11 @@ func (e *Error) Here() *Error {
 }
 
 // return a new error with a new stack capture
-func (e *Error) WithStackSkipping(skip int) *Error {
+func (e *merryErr) WithStackSkipping(skip int) Error {
 	if e == nil {
 		return nil
 	}
-	return &Error{
+	return &merryErr{
 		err:   e,
 		key:   stack,
 		value: captureStack(skip + 1),
@@ -243,7 +262,7 @@ func (e *Error) WithStackSkipping(skip int) *Error {
 }
 
 // return a new error with an http status code attached
-func (e *Error) WithHTTPCode(code int) *Error {
+func (e *merryErr) WithHTTPCode(code int) Error {
 	if e == nil {
 		return nil
 	}
@@ -251,7 +270,7 @@ func (e *Error) WithHTTPCode(code int) *Error {
 }
 
 // return a new error with a new message
-func (e *Error) WithMessage(msg string) *Error {
+func (e *merryErr) WithMessage(msg string) Error {
 	if e == nil {
 		return nil
 	}
@@ -259,7 +278,7 @@ func (e *Error) WithMessage(msg string) *Error {
 }
 
 // return a new error with a new formatted message
-func (e *Error) WithMessagef(format string, a ...interface{}) *Error {
+func (e *merryErr) WithMessagef(format string, a ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
@@ -267,7 +286,7 @@ func (e *Error) WithMessagef(format string, a ...interface{}) *Error {
 }
 
 //
-func (e *Error) Append(msg string) *Error {
+func (e *merryErr) Append(msg string) Error {
 	if e == nil {
 		return nil
 	}
@@ -275,7 +294,7 @@ func (e *Error) Append(msg string) *Error {
 }
 
 //
-func (e *Error) Appendf(format string, args ...interface{}) *Error {
+func (e *merryErr) Appendf(format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
