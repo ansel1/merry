@@ -3,11 +3,12 @@ package merry
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNew(t *testing.T) {
@@ -183,7 +184,7 @@ func TestNilValues(t *testing.T) {
 	if anF == nil {
 		t.Error("anF should have been not nil here, because it now has a concrete type")
 	}
-	if Wrap(nil).WithHTTPCode(400).WithMessage("hey") != nil {
+	if WithMessage(WithHTTPCode(Wrap(nil), 400), "hey") != nil {
 		t.Error("by using interfaces in all the returns, this should have remained a true nil value")
 	}
 }

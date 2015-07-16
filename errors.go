@@ -83,6 +83,9 @@ func WrapSkipping(e error, skip int) Error {
 // Add a context an error.  If the key was already set on e,
 // the new value will take precedence.
 func WithValue(e error, key, value interface{}) Error {
+	if e == nil {
+		return nil
+	}
 	return Wrap(e).WithValue(key, value)
 }
 
@@ -128,6 +131,9 @@ func Stack(e error) []uintptr {
 
 // Return an error with an http code attached.
 func WithHTTPCode(e error, code int) Error {
+	if e == nil {
+		return nil
+	}
 	return Wrap(e).WithHTTPCode(code)
 }
 
@@ -148,19 +154,31 @@ func HTTPCode(e error) int {
 // The resulting error's Error() method will return
 // the new message
 func WithMessage(e error, msg string) Error {
+	if e == nil {
+		return nil
+	}
 	return Wrap(e).WithValue(message, msg)
 }
 
 // Same as WithMessage(), using fmt.Sprint()
 func WithMessagef(e error, format string, a ...interface{}) Error {
+	if e == nil {
+		return nil
+	}
 	return Wrap(e).WithMessagef(format, a...)
 }
 
 func Append(e error, msg string) Error {
+	if e == nil {
+		return nil
+	}
 	return Wrap(e).Append(msg)
 }
 
 func Appendf(e error, format string, args ...interface{}) Error {
+	if e == nil {
+		return nil
+	}
 	return Wrap(e).Appendf(format, args...)
 }
 
