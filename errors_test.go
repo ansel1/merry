@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -292,6 +293,27 @@ func TestLocation(t *testing.T) {
 	f, l := Location(nil)
 	assert.Equal(t, "unknown", f)
 	assert.Equal(t, 0, l)
+}
+
+func TestSourceLine(t *testing.T) {
+	source := SourceLine(nil)
+	assert.Equal(t, source, "")
+
+	err := New("foo")
+	source = SourceLine(err)
+	assert.NotEqual(t, source, "")
+
+	parts := strings.Split(source, ":")
+	assert.Equal(t, len(parts), 2)
+
+	if !strings.HasSuffix(parts[0], "errors_test.go") {
+		t.Errorf("source line should contain file name")
+	}
+	if i, e := strconv.Atoi(parts[1]); e != nil {
+		t.Errorf("not a number: %s", parts[1])
+	} else if i <= 0 {
+		t.Errorf("source line must be > 1: %s", parts[1])
+	}
 }
 
 func TestValue(t *testing.T) {
