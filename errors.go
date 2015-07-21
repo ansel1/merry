@@ -180,20 +180,28 @@ func Appendf(e error, format string, args ...interface{}) Error {
 }
 
 // Check whether e is equal to or wraps the original, at any depth
-func Is(e error, original error) bool {
-	for {
-		if e == original {
+func Is(e error, originals ...error) bool {
+	is := func(e, original error) bool {
+		for {
+			if e == original {
+				return true
+			}
+			if e == nil || original == nil {
+				return false
+			}
+			w, ok := e.(*merryErr)
+			if !ok {
+				return false
+			}
+			e = w.err
+		}
+	}
+	for _, o := range originals {
+		if is(e, o) {
 			return true
 		}
-		if e == nil || original == nil {
-			return false
-		}
-		w, ok := e.(*merryErr)
-		if !ok {
-			return false
-		}
-		e = w.err
 	}
+	return false
 }
 
 // Return the innermost underlying error.
