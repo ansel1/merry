@@ -106,6 +106,30 @@ func Value(e error, key interface{}) interface{} {
 	}
 }
 
+// Return a map of all values attached to the error
+// If a key has been attached multiple times, the map will
+// contain the last value mapped
+func Values(e error) map[interface{}]interface{} {
+	if e == nil {
+		return nil
+	}
+	var values map[interface{}]interface{}
+	for {
+		w, ok := e.(*merryErr)
+		if !ok {
+			return values
+		}
+		if values == nil {
+			values = make(map[interface{}]interface{}, 1)
+		}
+		if _, ok := values[w.key]; !ok {
+			values[w.key] = w.value
+		}
+		e = w.err
+	}
+	return values
+}
+
 // Attach a new stack to the error, at the call site of Here().
 // Useful when returning copies of exported package errors
 func Here(e error) Error {

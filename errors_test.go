@@ -322,3 +322,27 @@ func TestValue(t *testing.T) {
 	assert.Nil(t, WithValue(nil, "", ""))
 	assert.Nil(t, Value(nil, ""))
 }
+
+func TestValues(t *testing.T) {
+	// nil -> nil
+	values := Values(nil)
+	assert.Nil(t, values)
+
+	var e error
+	e = New("bad stuff")
+	e = WithValue(e, "key1", "val1")
+	e = WithValue(e, "key2", "val2")
+
+	values = Values(e)
+	assert.NotNil(t, values)
+	assert.Equal(t, values["key1"], "val1")
+	assert.Equal(t, values["key2"], "val2")
+	assert.NotNil(t, values[stack])
+
+	// make sure the last value attached is returned
+	e = WithValue(e, "key3", "val3")
+	e = WithValue(e, "key3", "val4")
+	values = Values(e)
+	assert.Equal(t, values["key3"], "val4")
+
+}
