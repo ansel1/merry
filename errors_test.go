@@ -289,6 +289,22 @@ func TestAppend(t *testing.T) {
 	assert.Nil(t, Appendf(nil, "", ""))
 }
 
+func TestPrepend(t *testing.T) {
+	blug := New("blug")
+	err := blug.Prepend("blog")
+	assert.Equal(t, err.Error(), "blog: blug")
+	err = Prepend(err, "blig")
+	assert.Equal(t, err.Error(), "blig: blog: blug")
+	err = blug.Prependf("%s", "blog")
+	assert.Equal(t, err.Error(), "blog: blug")
+	err = Prependf(err, "%s", "blig")
+	assert.Equal(t, err.Error(), "blig: blog: blug")
+
+	// nil -> nil
+	assert.Nil(t, Prepend(nil, ""))
+	assert.Nil(t, Prependf(nil, "", ""))
+}
+
 func TestLocation(t *testing.T) {
 	// nil -> nil
 	f, l := Location(nil)

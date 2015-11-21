@@ -40,6 +40,8 @@ type Error interface {
 	error
 	Appendf(format string, args ...interface{}) Error
 	Append(msg string) Error
+	Prepend(msg string) Error
+	Prependf(format string, args ...interface{}) Error
 	WithMessage(msg string) Error
 	WithMessagef(format string, args ...interface{}) Error
 	WithValue(key, value interface{}) Error
@@ -189,6 +191,7 @@ func WithMessagef(e error, format string, a ...interface{}) Error {
 	return Wrap(e).WithMessagef(format, a...)
 }
 
+// Append a message after the current error message, in the format "original: new"
 func Append(e error, msg string) Error {
 	if e == nil {
 		return nil
@@ -196,11 +199,28 @@ func Append(e error, msg string) Error {
 	return Wrap(e).Append(msg)
 }
 
+// Append a message after the current error message, in the format "original: new"
 func Appendf(e error, format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
 	return Wrap(e).Appendf(format, args...)
+}
+
+// Prepend a message after the current error message, in the format "new: original"
+func Prepend(e error, msg string) Error {
+	if e == nil {
+		return nil
+	}
+	return Wrap(e).Prepend(msg)
+}
+
+// Prepend a message after the current error message, in the format "new: original"
+func Prependf(e error, format string, args ...interface{}) Error {
+	if e == nil {
+		return nil
+	}
+	return Wrap(e).Prependf(format, args...)
 }
 
 // Check whether e is equal to or wraps the original, at any depth
@@ -332,7 +352,7 @@ func (e *merryErr) WithMessagef(format string, a ...interface{}) Error {
 	return e.WithMessage(fmt.Sprintf(format, a...))
 }
 
-//
+// Append a message after the current error message, in the format "original: new"
 func (e *merryErr) Append(msg string) Error {
 	if e == nil {
 		return nil
@@ -340,10 +360,26 @@ func (e *merryErr) Append(msg string) Error {
 	return e.WithMessagef("%s: %s", e.Error(), msg)
 }
 
-//
+// Append a message after the current error message, in the format "original: new"
 func (e *merryErr) Appendf(format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
 	return e.Append(fmt.Sprintf(format, args...))
+}
+
+// Prepend a message after the current error message, in the format "new: original"
+func (e *merryErr) Prepend(msg string) Error {
+	if e == nil {
+		return nil
+	}
+	return e.WithMessagef("%s: %s", msg, e.Error())
+}
+
+// Prepend a message after the current error message, in the format "new: original"
+func (e *merryErr) Prependf(format string, args ...interface{}) Error {
+	if e == nil {
+		return nil
+	}
+	return e.Prepend(fmt.Sprintf(format, args...))
 }
