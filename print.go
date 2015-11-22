@@ -44,16 +44,19 @@ func Stacktrace(e error) string {
 	return ""
 }
 
-// Returns e.Error() and e's stacktrace.
-// If e has no stacktrace, this is identical to e.Error()
+// Returns e.Error() and e's stacktrace and user message, if set.
 func Details(e error) string {
 	if e == nil {
 		return ""
 	}
 	msg := e.Error()
+	userMsg := UserMessage(e)
+	if userMsg != "" {
+		msg = fmt.Sprintf("%s\n\nUser Message: %s", msg, userMsg)
+	}
 	s := Stacktrace(e)
 	if s != "" {
-		msg += "\n" + s
+		msg += "\n\n" + s
 	}
 	return msg
 }

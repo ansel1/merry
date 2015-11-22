@@ -59,6 +59,12 @@ func TestDetails(t *testing.T) {
 	if !strings.Contains(deets, Stacktrace(err)) {
 		t.Errorf("should have contained the error stacktrace")
 	}
+
+	err = WithUserMessage(err, "stay calm")
+	deets = Details(err)
+	t.Log(deets)
+	assert.Contains(t, deets, "User Message: stay calm")
+
 	// Allow nil error
 	assert.Empty(t, Details(nil))
 }

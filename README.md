@@ -24,6 +24,7 @@ always creates a new error which wraps the original.
 * stacktraces
 * overriding the error message
 * HTTP status codes
+* End user error messages
  
 You can also add your own additional information.
 
@@ -83,6 +84,13 @@ Details
     ```go
     merry.HTTPCode(errors.New("regular error")) // 500
     merry.HTTPCode(merry.New("merry error").WithHTTPCode(404)) // 404
+    ```
+
+* Set an alternate error message for end users
+ 
+    ```go
+    e := merry.New("crash").WithUserMessage("nothing to see here")
+    merry.UserMessage(e)  // returns "nothing to see here"
     ```
         
 * Functions for printing error details
