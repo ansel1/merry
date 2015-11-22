@@ -273,6 +273,15 @@ func TestOverridingMessage(t *testing.T) {
 	assert.Nil(t, WithMessagef(nil, "", ""))
 }
 
+func TestWithUserMessage(t *testing.T) {
+	fault := New("seg fault")
+	e := WithUserMessage(fault, "a glitch")
+	assert.Equal(t, "seg fault", e.Error())
+	assert.Equal(t, "a glitch", UserMessage(e))
+	e = WithUserMessagef(e, "not a %s deal", "huge")
+	assert.Equal(t, "not a huge deal", UserMessage(e))
+}
+
 func TestAppend(t *testing.T) {
 	blug := New("blug")
 	err := blug.Append("blog")

@@ -44,6 +44,8 @@ type Error interface {
 	Prependf(format string, args ...interface{}) Error
 	WithMessage(msg string) Error
 	WithMessagef(format string, args ...interface{}) Error
+	WithUserMessage(msg string) Error
+	WithUserMessagef(format string, args ...interface{}) Error
 	WithValue(key, value interface{}) Error
 	Here() Error
 	WithStackSkipping(skip int) Error
@@ -173,6 +175,15 @@ func HTTPCode(e error) int {
 	return code
 }
 
+// Return the end-user safe message.  Returns empty if not set
+func UserMessage(e error) string {
+	if e == nil {
+		return ""
+	}
+	msg, _ := Value(e, userMessage).(string)
+	return msg
+}
+
 // Override the message of error.
 // The resulting error's Error() method will return
 // the new message
@@ -189,6 +200,22 @@ func WithMessagef(e error, format string, a ...interface{}) Error {
 		return nil
 	}
 	return Wrap(e).WithMessagef(format, a...)
+}
+
+// Add a message which is suitable for end users to see
+func WithUserMessage(e error, msg string) Error {
+	if e == nil {
+		return nil
+	}
+	return Wrap(e).WithUserMessage(msg)
+}
+
+// Add a message which is suitable for end users to see
+func WithUserMessagef(e error, format string, args ...interface{}) Error {
+	if e == nil {
+		return nil
+	}
+	return Wrap(e).WithUserMessagef(format, args...)
 }
 
 // Append a message after the current error message, in the format "original: new"
@@ -275,9 +302,10 @@ func captureStack(skip int) []uintptr {
 type errorProperty string
 
 const (
-	stack    errorProperty = "stack"
-	message                = "message"
-	httpCode               = "http status code"
+	stack       errorProperty = "stack"
+	message                   = "message"
+	httpCode                  = "http status code"
+	userMessage               = "user message"
 )
 
 type merryErr struct {
@@ -350,6 +378,22 @@ func (e *merryErr) WithMessagef(format string, a ...interface{}) Error {
 		return nil
 	}
 	return e.WithMessage(fmt.Sprintf(format, a...))
+}
+
+// Add a message which is suitable for end users to see
+func (e *merryErr) WithUserMessage(msg string) Error {
+	if e == nil {
+		return nil
+	}
+	return e.WithValue(userMessage, msg)
+}
+
+// Add a message which is suitable for end users to see
+func (e *merryErr) WithUserMessagef(format string, args ...interface{}) Error {
+	if e == nil {
+		return nil
+	}
+	return e.WithUserMessage(fmt.Sprintf(format, args...))
 }
 
 // Append a message after the current error message, in the format "original: new"
