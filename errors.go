@@ -385,7 +385,11 @@ func (e *merryErr) WithUserMessage(msg string) Error {
 	if e == nil {
 		return nil
 	}
-	return e.WithValue(userMessage, msg)
+	e1 := e.WithValue(userMessage, msg)
+	if e1.Error() == "" {
+		e1 = e1.WithMessage(msg)
+	}
+	return e1
 }
 
 // Add a message which is suitable for end users to see

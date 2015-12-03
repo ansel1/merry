@@ -286,6 +286,10 @@ func TestWithUserMessage(t *testing.T) {
 	assert.Equal(t, "a glitch", UserMessage(e))
 	e = WithUserMessagef(e, "not a %s deal", "huge")
 	assert.Equal(t, "not a huge deal", UserMessage(e))
+	// If user message is set and regular message isn't, set regular message to user message
+	e = New("").WithUserMessage("a blag")
+	assert.Equal(t, "a blag", UserMessage(e))
+	assert.Equal(t, "a blag", e.Error())
 }
 
 func TestAppend(t *testing.T) {
