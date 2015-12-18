@@ -90,7 +90,7 @@ func WithValue(e error, key, value interface{}) Error {
 	if e == nil {
 		return nil
 	}
-	return Wrap(e).WithValue(key, value)
+	return WrapSkipping(e, 1).WithValue(key, value)
 }
 
 // Return the value for key, or nil if not set
@@ -159,7 +159,7 @@ func WithHTTPCode(e error, code int) Error {
 	if e == nil {
 		return nil
 	}
-	return Wrap(e).WithHTTPCode(code)
+	return WrapSkipping(e, 1).WithHTTPCode(code)
 }
 
 // Convert an error to an http status code.  All errors
@@ -191,7 +191,7 @@ func WithMessage(e error, msg string) Error {
 	if e == nil {
 		return nil
 	}
-	return Wrap(e).WithValue(message, msg)
+	return WrapSkipping(e, 1).WithValue(message, msg)
 }
 
 // Same as WithMessage(), using fmt.Sprint()
@@ -199,7 +199,7 @@ func WithMessagef(e error, format string, a ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
-	return Wrap(e).WithMessagef(format, a...)
+	return WrapSkipping(e, 1).WithMessagef(format, a...)
 }
 
 // Add a message which is suitable for end users to see
@@ -207,7 +207,7 @@ func WithUserMessage(e error, msg string) Error {
 	if e == nil {
 		return nil
 	}
-	return Wrap(e).WithUserMessage(msg)
+	return WrapSkipping(e, 1).WithUserMessage(msg)
 }
 
 // Add a message which is suitable for end users to see
@@ -215,7 +215,7 @@ func WithUserMessagef(e error, format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
-	return Wrap(e).WithUserMessagef(format, args...)
+	return WrapSkipping(e, 1).WithUserMessagef(format, args...)
 }
 
 // Append a message after the current error message, in the format "original: new"
@@ -223,7 +223,7 @@ func Append(e error, msg string) Error {
 	if e == nil {
 		return nil
 	}
-	return Wrap(e).Append(msg)
+	return WrapSkipping(e, 1).Append(msg)
 }
 
 // Append a message after the current error message, in the format "original: new"
@@ -231,7 +231,7 @@ func Appendf(e error, format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
-	return Wrap(e).Appendf(format, args...)
+	return WrapSkipping(e, 1).Appendf(format, args...)
 }
 
 // Prepend a message after the current error message, in the format "new: original"
@@ -239,7 +239,7 @@ func Prepend(e error, msg string) Error {
 	if e == nil {
 		return nil
 	}
-	return Wrap(e).Prepend(msg)
+	return WrapSkipping(e, 1).Prepend(msg)
 }
 
 // Prepend a message after the current error message, in the format "new: original"
@@ -247,7 +247,7 @@ func Prependf(e error, format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
-	return Wrap(e).Prependf(format, args...)
+	return WrapSkipping(e, 1).Prependf(format, args...)
 }
 
 // Check whether e is equal to or wraps the original, at any depth

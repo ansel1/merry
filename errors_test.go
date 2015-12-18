@@ -261,6 +261,36 @@ func TestHTTPCode(t *testing.T) {
 	assert.Equal(t, 200, HTTPCode(nil), "The code for nil is 200 (ok)")
 }
 
+func TestImplicitWrapping(t *testing.T) {
+	// WithXXX functions will implicitly wrap non-merry errors
+	// but if they do so, they should skip a frame, so the merry error's stack
+	// appears to start wherever the WithXXX function was called
+
+	_, _, rl, _ := runtime.Caller(0)
+	tests := []struct {
+		f     func() error
+		fname string
+	}{
+		{fname: "WithHTTPCode", f: func() error { return WithHTTPCode(errors.New("bug"), 404) }},
+		{fname: "WithUserMessage", f: func() error { return WithUserMessage(errors.New("bug"), "asdf") }},
+		{fname: "WithUserMessages", f: func() error { return WithUserMessagef(errors.New("bug"), "asdf") }},
+		{fname: "WithMessage", f: func() error { return WithMessage(errors.New("bug"), "asdf") }},
+		{fname: "WithMessagef", f: func() error { return WithMessagef(errors.New("bug"), "asdf") }},
+		{fname: "WithValue", f: func() error { return WithValue(errors.New("bug"), "asdf", "asdf") }},
+		{fname: "Append", f: func() error { return Append(errors.New("bug"), "asdf") }},
+		{fname: "Appendf", f: func() error { return Appendf(errors.New("bug"), "asdf") }},
+		{fname: "Prepend", f: func() error { return Prepend(errors.New("bug"), "asdf") }},
+		{fname: "Prependf", f: func() error { return Prependf(errors.New("bug"), "asdf") }},
+	}
+	for i, test := range tests {
+		t.Log("Testing ", test.fname)
+		err := test.f()
+		f, l := Location(err)
+		assert.Contains(t, f, "errors_test.go", "error message should have contained errors_test.go")
+		assert.Equal(t, rl+5+i, l, "error line number was incorrect")
+	}
+}
+
 func TestOverridingMessage(t *testing.T) {
 	blug := New("blug")
 	err := blug.WithMessage("blee")
