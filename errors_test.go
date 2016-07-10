@@ -411,3 +411,66 @@ func TestValues(t *testing.T) {
 	assert.Equal(t, values["key3"], "val4")
 
 }
+
+func TestNoStacktrace(t *testing.T) {
+	// Disable adding stack to errors
+	RegisterStackCaptureFunc(nil)
+	if isDefaultStackCapture() {
+		t.Fatalf("still using default stack capture function")
+	}
+
+	var err error = New("bang")
+	if len(Stack(err)) > 0 {
+		t.Fatalf("stack length is not 0")
+	}
+	s := Stacktrace(err)
+	if s != "" {
+		t.Fatalf("stacktrace is not empty")
+	}
+
+	// Enable stacktracing again
+	UnregisterStackCaptureFunc(nil)
+	if !isDefaultStackCapture() {
+		t.Fatalf("not using default stack capture function")
+	}
+
+	// Re-run stacktrace tests.
+	// XXX TODO: There must be a better way to do this?
+	TestStacktrace(t)
+}
+
+func testCaptureStack(skip int) []uintptr {
+	// Just doing the same as the default for now...
+	stack := make([]uintptr, MaxStackDepth)
+	length := runtime.Callers(2+skip, stack[:])
+	return stack[:length]
+}
+
+func TestCustomStacktrace(t *testing.T) {
+	// Register our stack capture function
+	RegisterStackCaptureFunc(testCaptureStack)
+	if isDefaultStackCapture() {
+		t.Fatalf("still using default stack capture function")
+	}
+
+	// Make sure the default extraction functions return nil
+	var err error = New("bang")
+	f, l := Location(err)
+	if !((f == "") && (l == 0)) {
+		t.Fatalf("Location did not return nil")
+	}
+	sl := SourceLine(err)
+	if !(sl == "") {
+		t.Fatalf("SourceLine did not return nil")
+	}
+	st := Stacktrace(err)
+	if !(st == "") {
+		t.Fatalf("SourceLine did not return nil")
+	}
+
+	// Go back to the default stack capture function
+	UnregisterStackCaptureFunc(nil)
+	if !isDefaultStackCapture() {
+		t.Fatalf("not using default stack capture function")
+	}
+}

@@ -9,6 +9,11 @@ import (
 
 // Returns zero values if e has no stacktrace
 func Location(e error) (file string, line int) {
+	if !isDefaultStackCapture() {
+		// If we are not using the default stack capture function,
+		// we don't know how to interpret the stacktrace data
+		return "", 0
+	}
 	s := Stack(e)
 	if len(s) > 0 {
 		sf := goerr.NewStackFrame(s[0])
@@ -21,6 +26,11 @@ func Location(e error) (file string, line int) {
 // Location's result or an empty string if there's
 // no stracktrace.
 func SourceLine(e error) string {
+	if !isDefaultStackCapture() {
+		// If we are not using the default stack capture function,
+		// we don't know how to interpret the stacktrace data
+		return ""
+	}
 	file, line := Location(e)
 	if line != 0 {
 		return fmt.Sprintf("%s:%d", file, line)
@@ -32,6 +42,11 @@ func SourceLine(e error) string {
 // the same way as golangs runtime package.
 // If e has no stacktrace, returns an empty string.
 func Stacktrace(e error) string {
+	if !isDefaultStackCapture() {
+		// If we are not using the default stack capture function,
+		// we don't know how to interpret the stacktrace data
+		return ""
+	}
 	s := Stack(e)
 	if len(s) > 0 {
 		buf := bytes.Buffer{}

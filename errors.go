@@ -79,7 +79,7 @@ func WrapSkipping(e error, skip int) Error {
 		return &merryErr{
 			err:   e,
 			key:   stack,
-			value: captureStack(skip + 1),
+			value: captureStackFunc(skip + 1),
 		}
 	}
 }
@@ -293,10 +293,57 @@ func Unwrap(e error) error {
 	return e
 }
 
+// CaptureContextFunc is a callback function used to capture stacktrace
+type CaptureContextFunc func(skip int) []uintptr
+
+// The stack capture callback function we use.
+// We default to capturing a stacktrace with all errors.
+var captureStackFunc CaptureContextFunc = captureStack
+var isDefaultCapture = true
+
 func captureStack(skip int) []uintptr {
 	stack := make([]uintptr, MaxStackDepth)
 	length := runtime.Callers(2+skip, stack[:])
 	return stack[:length]
+}
+
+func noCaptureStack(skip int) []uintptr {
+	return nil
+}
+
+// XXX TODO: Register custom stacktrace String() function when registering stack capture func?
+
+// Register a custom stack trace capture function,
+// which replaces the default capture function.
+func RegisterStackCaptureFunc(f CaptureContextFunc) {
+	isDefaultCapture = false
+	if f == nil {
+		captureStackFunc = noCaptureStack
+		return
+	}
+	captureStackFunc = f
+}
+
+// Unregister a custom stack trace capture function,
+// and revert to the default capture function.
+func UnregisterStackCaptureFunc(f CaptureContextFunc) {
+	// For now, we only store one capture function so we just
+	// replace what's there with the default.
+	// If multiple capture funcs are supported later, then
+	// we'll need to remove the specific func passed in.
+
+	// XXX TODO: f isn't used right now, remove it?
+	//           or keep it so that the API is the same
+	//           when multiple callbacks are supported?
+
+	captureStackFunc = captureStack
+	isDefaultCapture = true
+}
+
+// Used by functions in print.go to determine whether to try to interpret
+// stacktrace information.
+func isDefaultStackCapture() bool {
+	return isDefaultCapture
 }
 
 type errorProperty string
@@ -352,7 +399,7 @@ func (e *merryErr) WithStackSkipping(skip int) Error {
 	return &merryErr{
 		err:   e,
 		key:   stack,
-		value: captureStack(skip + 1),
+		value: captureStackFunc(skip + 1),
 	}
 }
 
