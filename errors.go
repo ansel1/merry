@@ -36,6 +36,18 @@ import (
 // The maximum number of stackframes on any error.
 var MaxStackDepth = 50
 
+var captureStacks = true
+
+// Returns whether stack capturing is enabled
+func StackCaptureEnabled() bool {
+	return captureStacks
+}
+
+// Enable/Disable stack capturing globally.  Disabling stack capture can increase performance
+func SetStackCaptureEnabled(enabled bool) {
+	captureStacks = enabled
+}
+
 type Error interface {
 	error
 	Appendf(format string, args ...interface{}) Error
@@ -294,6 +306,9 @@ func Unwrap(e error) error {
 }
 
 func captureStack(skip int) []uintptr {
+	if !captureStacks {
+		return nil
+	}
 	stack := make([]uintptr, MaxStackDepth)
 	length := runtime.Callers(2+skip, stack[:])
 	return stack[:length]

@@ -411,3 +411,40 @@ func TestValues(t *testing.T) {
 	assert.Equal(t, values["key3"], "val4")
 
 }
+
+func TestStackCaptureEnabled(t *testing.T) {
+	// on by default
+	assert.True(t, StackCaptureEnabled())
+
+	SetStackCaptureEnabled(false)
+	assert.False(t, StackCaptureEnabled())
+	e := New("yikes")
+	assert.Empty(t, Stack(e))
+	// let's just make sure none of the print functions bomb when there's no stack
+	assert.Empty(t, SourceLine(e))
+	f, l := Location(e)
+	assert.Empty(t, f)
+	assert.Equal(t, 0, l)
+	assert.Empty(t, Stacktrace(e))
+	assert.NotPanics(t, func() { Details(e) })
+
+	// turn it back on
+	SetStackCaptureEnabled(true)
+	assert.True(t, StackCaptureEnabled())
+
+	e = New("mommy")
+	assert.NotEmpty(t, Stack(e))
+}
+
+func BenchmarkNew_withStackCapture(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		New("boom")
+	}
+}
+
+func BenchmarkNew_withoutStackCapture(b *testing.B) {
+	SetStackCaptureEnabled(false)
+	for i := 0; i < b.N; i++ {
+		New("boom")
+	}
+}

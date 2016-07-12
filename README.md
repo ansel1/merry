@@ -28,6 +28,12 @@ always creates a new error which wraps the original.
  
 You can also add your own additional information.
 
+The stack capturing feature can be turned off for better performance, though it's pretty fast.  Benchmarks
+on an early 2011 MacBook Pro, with go 1.7rc1:
+
+    BenchmarkNew_withStackCapture-8      	 1000000	      1413 ns/op
+    BenchmarkNew_withoutStackCapture-8   	10000000	       218 ns/op
+
 Details
 -------
 
@@ -101,7 +107,7 @@ Details
     m = merry.Details(err) // error message and stacktrace
     ```
    
-* Add you're own context info
+* Add your own context info
 
     ```go
     err := merry.New("boom").WithValue("explosive", "black powder")
@@ -113,6 +119,8 @@ Basic Usage
 The package contains functions for creating new errors with stacks, or adding a stack to `error` 
 instances.  Functions with add context (e.g. `WithValue()`) work on any `error`, and will 
 automatically convert them to merry errors (with a stack) if necessary.
+
+Capturing the stack can be globally disabled with `SetStackCaptureEnabled(false)`
 
 Functions which get context values from errors also accept `error`, and will return default
 values if the error is not merry, or doesn't have that key attached.
@@ -170,7 +178,7 @@ func main() {
     // Get the location of the error (the first line in the stacktrace)
     file, line := merry.Location(err)
     
-    // Get an HTTP status code for an error.  Defaults to 500.
+    // Get an HTTP status code for an error.  Defaults to 500 for non-nil errors, and 200 if err is nil.
     code := merry.HTTPCode(err)
     
 }
