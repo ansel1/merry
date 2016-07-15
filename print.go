@@ -49,7 +49,7 @@ func Details(e error) string {
 	if e == nil {
 		return ""
 	}
-	msg := e.Error()
+	msg := Message(e)
 	userMsg := UserMessage(e)
 	if userMsg != "" {
 		msg = fmt.Sprintf("%s\n\nUser Message: %s", msg, userMsg)

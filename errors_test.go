@@ -291,22 +291,49 @@ func TestImplicitWrapping(t *testing.T) {
 	}
 }
 
-func TestOverridingMessage(t *testing.T) {
-	blug := New("blug")
-	err := blug.WithMessage("blee")
-	if m := err.Error(); m != "blee" {
-		t.Errorf("should have overridden the underlying message, expecting blee, was %s", m)
-	}
-	if m := err.WithMessagef("super %v", "stew").Error(); m != "super stew" {
-		t.Errorf("formatted message didn't work.  got %v", m)
-	}
-	if !reflect.DeepEqual(Stack(blug), Stack(err)) {
-		t.Error("err should have the same stack as blug")
-	}
+func TestWithMessage(t *testing.T) {
+	err1 := New("blug")
+	err2 := err1.WithMessage("blee")
+	err3 := err2.WithMessage("red")
+	assert.EqualError(t, err1, "blug")
+	assert.EqualError(t, err2, "blee", "should have overridden the underlying message")
+	assert.EqualError(t, err3, "red")
+	assert.Equal(t, Stack(err1), Stack(err2), "stack should not have been altered")
 
 	// nil -> nil
 	assert.Nil(t, WithMessage(nil, ""))
+}
+
+func TestWithMessagef(t *testing.T) {
+	err1 := New("blug")
+	err2 := err1.WithMessagef("super %v", "stew")
+	err3 := err1.WithMessagef("blue %v", "red")
+	assert.EqualError(t, err1, "blug")
+	assert.EqualError(t, err2, "super stew")
+	assert.EqualError(t, err3, "blue red")
+	assert.Equal(t, Stack(err1), Stack(err2), "stack should not have been altered")
+	// nil -> nil
 	assert.Nil(t, WithMessagef(nil, "", ""))
+}
+
+func TestMessage(t *testing.T) {
+	tests := []error{
+		errors.New("one"),
+		WithMessage(errors.New("blue"), "one"),
+		New("one"),
+	}
+	for _, test := range tests {
+		assert.Equal(t, "one", test.Error())
+		assert.Equal(t, "one", Message(test))
+	}
+
+	// when verbose is on, Error() changes, but Message() doesn't
+	defer SetVerboseDefault(false)
+	SetVerboseDefault(true)
+	e := New("two")
+	assert.Equal(t, "two", Message(e))
+	assert.NotEqual(t, "two", e.Error())
+
 }
 
 func TestWithUserMessage(t *testing.T) {
@@ -434,6 +461,23 @@ func TestStackCaptureEnabled(t *testing.T) {
 
 	e = New("mommy")
 	assert.NotEmpty(t, Stack(e))
+}
+
+func TestVerboseDefault(t *testing.T) {
+	defer SetVerboseDefault(false)
+	// off by default
+	assert.False(t, VerboseDefault())
+
+	SetVerboseDefault(true)
+	assert.True(t, VerboseDefault())
+	e := New("yikes")
+	// test verbose on
+	assert.Equal(t, Details(e), e.Error())
+	// test verbose off
+	SetVerboseDefault(false)
+	s := e.Error()
+	assert.Equal(t, Message(e), s)
+	assert.Equal(t, "yikes", s)
 }
 
 func BenchmarkNew_withStackCapture(b *testing.B) {

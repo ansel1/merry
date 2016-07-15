@@ -37,6 +37,7 @@ import (
 var MaxStackDepth = 50
 
 var captureStacks = true
+var verbose = false
 
 // Returns whether stack capturing is enabled
 func StackCaptureEnabled() bool {
@@ -46,6 +47,20 @@ func StackCaptureEnabled() bool {
 // Enable/Disable stack capturing globally.  Disabling stack capture can increase performance
 func SetStackCaptureEnabled(enabled bool) {
 	captureStacks = enabled
+}
+
+// VerboseDefault returns the global default for verbose mode.
+// When true, e.Error() == Details(e)
+// When false, e.Error() == Message(e)
+func VerboseDefault() bool {
+	return verbose
+}
+
+// SetVerboseDefault sets the global default for verbose mode.
+// When true, e.Error() == Details(e)
+// When false, e.Error() == Message(e)
+func SetVerboseDefault(b bool) {
+	verbose = b
 }
 
 type Error interface {
@@ -196,6 +211,22 @@ func UserMessage(e error) string {
 	return msg
 }
 
+// Message returns just the error message.  It is equivalent to
+// Error() when Verbose is false.
+// The behavior of Error() is (psuedo-code):
+//
+//     if verbose
+//       Details(e)
+//     else
+//       Message(e)
+func Message(e error) string {
+	m, _ := Value(e, message).(string)
+	if m == "" {
+		return Unwrap(e).Error()
+	}
+	return m
+}
+
 // Override the message of error.
 // The resulting error's Error() method will return
 // the new message
@@ -332,11 +363,11 @@ type merryErr struct {
 // returns the message value if set, otherwise
 // delegates to inner error
 func (e *merryErr) Error() string {
-	m, _ := Value(e, message).(string)
-	if m == "" {
-		return Unwrap(e).Error()
+	if verbose {
+		return Details(e)
+	} else {
+		return Message(e)
 	}
-	return m
 }
 
 // return a new error with additional context
