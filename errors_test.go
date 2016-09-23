@@ -48,6 +48,24 @@ func TestErrorf(t *testing.T) {
 	}
 }
 
+func TestUserError(t *testing.T) {
+	_, _, rl, _ := runtime.Caller(0)
+	err := UserError("bang")
+	assert.Equal(t, "bang", UserMessage(err))
+	assert.Empty(t, Message(err))
+	_, l := Location(err)
+	assert.Equal(t, rl+1, l)
+}
+
+func TestUserErrorf(t *testing.T) {
+	_, _, rl, _ := runtime.Caller(0)
+	err := UserErrorf("bang %v", "bang")
+	assert.Equal(t, "bang bang", UserMessage(err))
+	assert.Empty(t, Message(err))
+	_, l := Location(err)
+	assert.Equal(t, rl+1, l)
+}
+
 func TestDetails(t *testing.T) {
 	var err error = New("bang")
 	deets := Details(err)

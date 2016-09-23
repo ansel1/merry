@@ -91,6 +91,17 @@ func Errorf(format string, a ...interface{}) Error {
 	return WrapSkipping(fmt.Errorf(format, a...), 1)
 }
 
+// UserError creates a new error with a message intended for display to an
+// end user.
+func UserError(msg string) Error {
+	return WrapSkipping(errors.New(""), 1).WithUserMessage(msg)
+}
+
+// UserErrorf is like UserError, but uses fmt.Sprintf()
+func UserErrorf(format string, a ...interface{}) Error {
+	return WrapSkipping(errors.New(""), 1).WithUserMessagef(format, a...)
+}
+
 // Wrap turns the argument into a merry.Error.  If the argument already is a
 // merry.Error, this is a no-op.
 // If e == nil, return nil
