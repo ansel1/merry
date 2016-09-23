@@ -54,10 +54,10 @@ func TestDetails(t *testing.T) {
 	t.Log(deets)
 	lines := strings.Split(deets, "\n")
 	if lines[0] != "bang" {
-		t.Errorf("first line should have been bang", lines[0])
+		t.Errorf("first line should have been bang: %v", lines[0])
 	}
 	if !strings.Contains(deets, Stacktrace(err)) {
-		t.Errorf("should have contained the error stacktrace")
+		t.Error("should have contained the error stacktrace")
 	}
 
 	err = WithUserMessage(err, "stay calm")
@@ -73,16 +73,16 @@ func TestStacktrace(t *testing.T) {
 	_, _, rl, _ := runtime.Caller(0)
 	var err error = New("bang")
 	if !(len(Stack(err)) > 0) {
-		t.Fatalf("stack length is 0")
+		t.Fatal("stack length is 0")
 	}
 	s := Stacktrace(err)
 	t.Log(s)
 	lines := strings.Split(s, "\n")
 	if len(lines) < 1 {
-		t.Fatalf("stacktrace is empty")
+		t.Fatal("stacktrace is empty")
 	}
 	if !strings.Contains(lines[0], fmt.Sprintf("errors_test.go:%d", rl+1)) {
-		t.Fatalf("stacktrace is wrong")
+		t.Fatal("stacktrace is wrong")
 	}
 	// Allow nil error
 	assert.Empty(t, Stacktrace(nil))
@@ -198,27 +198,27 @@ func TestNilValues(t *testing.T) {
 
 func TestIs(t *testing.T) {
 	ParseError := errors.New("blag")
-	copy := Here(ParseError)
-	if !Is(copy, ParseError) {
+	cp := Here(ParseError)
+	if !Is(cp, ParseError) {
 		t.Error("Is(child, parent) should be true")
 	}
-	if Is(ParseError, copy) {
+	if Is(ParseError, cp) {
 		t.Error("Is(parent, child) should not be true")
 	}
 	if !Is(ParseError, ParseError) {
 		t.Error("errors are always themselves")
 	}
-	if !Is(copy, copy) {
+	if !Is(cp, cp) {
 		t.Error("should work when comparing rich error to itself")
 	}
-	if Is(Here(ParseError), copy) {
+	if Is(Here(ParseError), cp) {
 		t.Error("Is(sibling, sibling) should not be true")
 	}
 	err2 := errors.New("blag")
 	if Is(ParseError, err2) {
 		t.Error("These should not have been equal")
 	}
-	if Is(Here(err2), copy) {
+	if Is(Here(err2), cp) {
 		t.Error("these were not copies of the same error")
 	}
 	if Is(Here(err2), ParseError) {
@@ -400,7 +400,7 @@ func TestSourceLine(t *testing.T) {
 	assert.Equal(t, len(parts), 2)
 
 	if !strings.HasSuffix(parts[0], "errors_test.go") {
-		t.Errorf("source line should contain file name")
+		t.Error("source line should contain file name")
 	}
 	if i, e := strconv.Atoi(parts[1]); e != nil {
 		t.Errorf("not a number: %s", parts[1])

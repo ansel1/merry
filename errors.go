@@ -158,7 +158,6 @@ func Values(e error) map[interface{}]interface{} {
 		}
 		e = w.err
 	}
-	return values
 }
 
 // Attach a new stack to the error, at the call site of Here().
@@ -333,7 +332,6 @@ func Unwrap(e error) error {
 		}
 		e = w.err
 	}
-	return e
 }
 
 func captureStack(skip int) []uintptr {
