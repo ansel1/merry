@@ -480,6 +480,42 @@ func TestVerboseDefault(t *testing.T) {
 	assert.Equal(t, "yikes", s)
 }
 
+func TestMerryErr_Error(t *testing.T) {
+	origVerbose := verbose
+	defer func() {
+		verbose = origVerbose
+	}()
+
+	// test with verbose on
+	verbose = false
+
+	tests := []struct {
+		desc                 string
+		verbose              bool
+		message, userMessage string
+		expected             string
+	}{
+		{
+			desc:     "with message",
+			message:  "blue",
+			expected: "blue",
+		},
+		{
+			desc:        "with user message",
+			userMessage: "red",
+			expected:    "red",
+		},
+	}
+	for _, test := range tests {
+		t.Log("error message tests: " + test.desc)
+		verbose = test.verbose
+		err := New(test.message).WithUserMessage(test.userMessage)
+		t.Log(err.Error())
+		assert.Equal(t, test.expected, err.Error())
+	}
+
+}
+
 func BenchmarkNew_withStackCapture(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		New("boom")

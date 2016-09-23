@@ -366,7 +366,11 @@ func (e *merryErr) Error() string {
 	if verbose {
 		return Details(e)
 	} else {
-		return Message(e)
+		m := Message(e)
+		if m == "" {
+			return UserMessage(e)
+		}
+		return m
 	}
 }
 
@@ -431,11 +435,7 @@ func (e *merryErr) WithUserMessage(msg string) Error {
 	if e == nil {
 		return nil
 	}
-	e1 := e.WithValue(userMessage, msg)
-	if e1.Error() == "" {
-		e1 = e1.WithMessage(msg)
-	}
-	return e1
+	return e.WithValue(userMessage, msg)
 }
 
 // Add a message which is suitable for end users to see
