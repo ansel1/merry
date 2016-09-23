@@ -7,7 +7,7 @@ import (
 	goerr "github.com/go-errors/errors"
 )
 
-// Returns zero values if e has no stacktrace
+// Location returns zero values if e has no stacktrace
 func Location(e error) (file string, line int) {
 	s := Stack(e)
 	if len(s) > 0 {
@@ -28,7 +28,7 @@ func SourceLine(e error) string {
 	return ""
 }
 
-// Returns the error's stacktrace as a string formatted
+// Stacktrace returns the error's stacktrace as a string formatted
 // the same way as golangs runtime package.
 // If e has no stacktrace, returns an empty string.
 func Stacktrace(e error) string {
@@ -44,7 +44,7 @@ func Stacktrace(e error) string {
 	return ""
 }
 
-// Returns e.Error() and e's stacktrace and user message, if set.
+// Details returns e.Error() and e's stacktrace and user message, if set.
 func Details(e error) string {
 	if e == nil {
 		return ""

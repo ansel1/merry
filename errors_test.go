@@ -89,7 +89,7 @@ func TestStacktrace(t *testing.T) {
 }
 
 func TestWrap(t *testing.T) {
-	var err error = errors.New("simple")
+	err := errors.New("simple")
 	_, _, rl, _ := runtime.Caller(0)
 	wrapped := WrapSkipping(err, 0)
 	f, l := Location(wrapped)

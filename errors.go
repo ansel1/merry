@@ -33,18 +33,18 @@ import (
 	"runtime"
 )
 
-// The maximum number of stackframes on any error.
+// MaxStackDepth is the maximum number of stackframes on any error.
 var MaxStackDepth = 50
 
 var captureStacks = true
 var verbose = false
 
-// Returns whether stack capturing is enabled
+// StackCaptureEnabled returns whether stack capturing is enabled
 func StackCaptureEnabled() bool {
 	return captureStacks
 }
 
-// Enable/Disable stack capturing globally.  Disabling stack capture can increase performance
+// SetStackCaptureEnabled sets stack capturing globally.  Disabling stack capture can increase performance
 func SetStackCaptureEnabled(enabled bool) {
 	captureStacks = enabled
 }
@@ -63,6 +63,8 @@ func SetVerboseDefault(b bool) {
 	verbose = b
 }
 
+// Error extends the standard golang `error` interface with functions
+// for attachment additional data to the error
 type Error interface {
 	error
 	Appendf(format string, args ...interface{}) Error
@@ -79,23 +81,28 @@ type Error interface {
 	WithHTTPCode(code int) Error
 }
 
-// Create a new error, with a stack attached.  The equivalent of golang's errors.New()
+// New creates a new error, with a stack attached.  The equivalent of golang's errors.New()
 func New(msg string) Error {
 	return WrapSkipping(errors.New(msg), 1)
 }
 
-// Create a new error with a formatted message and a stack.  The equivalent of golang's fmt.Errorf()
+// Errorf creates a new error with a formatted message and a stack.  The equivalent of golang's fmt.Errorf()
 func Errorf(format string, a ...interface{}) Error {
 	return WrapSkipping(fmt.Errorf(format, a...), 1)
 }
 
-// Cast e to *Error, or wrap e in a new *Error with stack
+// Wrap turns the argument into a merry.Error.  If the argument already is a
+// merry.Error, this is a no-op.
+// If e == nil, return nil
 func Wrap(e error) Error {
 	return WrapSkipping(e, 1)
 }
 
-// Cast e to *Error, or wrap e in a new *Error with stack
-// Skip `skip` frames (0 is the call site of `WrapSkipping()`)
+// WrapSkipping turns the error arg into a merry.Error if the arg is not
+// already a merry.Error.
+// If e is nil, return nil.
+// If a merry.Error is created by this call, the stack captured will skip
+// `skip` frames (0 is the call site of `WrapSkipping()`)
 func WrapSkipping(e error, skip int) Error {
 	switch e1 := e.(type) {
 	case nil:
@@ -111,8 +118,9 @@ func WrapSkipping(e error, skip int) Error {
 	}
 }
 
-// Add a context an error.  If the key was already set on e,
+// WithValue adds a context an error.  If the key was already set on e,
 // the new value will take precedence.
+// If e is nil, returns nil.
 func WithValue(e error, key, value interface{}) Error {
 	if e == nil {
 		return nil
@@ -120,7 +128,8 @@ func WithValue(e error, key, value interface{}) Error {
 	return WrapSkipping(e, 1).WithValue(key, value)
 }
 
-// Return the value for key, or nil if not set
+// Value returns the value for key, or nil if not set.
+// If e is nil, returns nil.
 func Value(e error, key interface{}) interface{} {
 	for {
 		switch m := e.(type) {
@@ -137,9 +146,10 @@ func Value(e error, key interface{}) interface{} {
 	}
 }
 
-// Return a map of all values attached to the error
+// Values returns a map of all values attached to the error
 // If a key has been attached multiple times, the map will
 // contain the last value mapped
+// If e is nil, returns nil.
 func Values(e error) map[interface{}]interface{} {
 	if e == nil {
 		return nil
@@ -160,8 +170,9 @@ func Values(e error) map[interface{}]interface{} {
 	}
 }
 
-// Attach a new stack to the error, at the call site of Here().
-// Useful when returning copies of exported package errors
+// Here returns an error with a new stacktrace, at the call site of Here().
+// Useful when returning copies of exported package errors.
+// If e is nil, returns nil.
 func Here(e error) Error {
 	switch m := e.(type) {
 	case nil:
@@ -174,13 +185,15 @@ func Here(e error) Error {
 	}
 }
 
-// Return the stack attached to an error, or nil if one is not attached
+// Stack returns the stack attached to an error, or nil if one is not attached
+// If e is nil, returns nil.
 func Stack(e error) []uintptr {
 	stack, _ := Value(e, stack).([]uintptr)
 	return stack
 }
 
-// Return an error with an http code attached.
+// WithHTTPCode returns an error with an http code attached.
+// If e is nil, returns nil.
 func WithHTTPCode(e error, code int) Error {
 	if e == nil {
 		return nil
@@ -188,8 +201,9 @@ func WithHTTPCode(e error, code int) Error {
 	return WrapSkipping(e, 1).WithHTTPCode(code)
 }
 
-// Convert an error to an http status code.  All errors
+// HTTPCode converts an error to an http status code.  All errors
 // map to 500, unless the error has an http code attached.
+// If e is nil, returns 200.
 func HTTPCode(e error) int {
 	if e == nil {
 		return 200
@@ -201,7 +215,8 @@ func HTTPCode(e error) int {
 	return code
 }
 
-// Return the end-user safe message.  Returns empty if not set
+// UserMessage returns the end-user safe message.  Returns empty if not set.
+// If e is nil, returns "".
 func UserMessage(e error) string {
 	if e == nil {
 		return ""
@@ -217,7 +232,9 @@ func UserMessage(e error) string {
 //     if verbose
 //       Details(e)
 //     else
-//       Message(e)
+//       Message(e) || UserMessage(e)
+//
+// If e is nil, returns "".
 func Message(e error) string {
 	m, _ := Value(e, message).(string)
 	if m == "" {
@@ -226,9 +243,10 @@ func Message(e error) string {
 	return m
 }
 
-// Override the message of error.
+// WithMessage returns an error with a new message.
 // The resulting error's Error() method will return
-// the new message
+// the new message.
+// If e is nil, returns nil.
 func WithMessage(e error, msg string) Error {
 	if e == nil {
 		return nil
@@ -236,7 +254,7 @@ func WithMessage(e error, msg string) Error {
 	return WrapSkipping(e, 1).WithValue(message, msg)
 }
 
-// Same as WithMessage(), using fmt.Sprint()
+// WithMessagef is the same as WithMessage(), using fmt.Sprintf().
 func WithMessagef(e error, format string, a ...interface{}) Error {
 	if e == nil {
 		return nil
@@ -244,7 +262,8 @@ func WithMessagef(e error, format string, a ...interface{}) Error {
 	return WrapSkipping(e, 1).WithMessagef(format, a...)
 }
 
-// Add a message which is suitable for end users to see
+// WithUserMessage adds a message which is suitable for end users to see.
+// If e is nil, returns nil.
 func WithUserMessage(e error, msg string) Error {
 	if e == nil {
 		return nil
@@ -252,7 +271,7 @@ func WithUserMessage(e error, msg string) Error {
 	return WrapSkipping(e, 1).WithUserMessage(msg)
 }
 
-// Add a message which is suitable for end users to see
+// WithUserMessagef is the same as WithMessage(), using fmt.Sprintf()
 func WithUserMessagef(e error, format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
@@ -260,7 +279,8 @@ func WithUserMessagef(e error, format string, args ...interface{}) Error {
 	return WrapSkipping(e, 1).WithUserMessagef(format, args...)
 }
 
-// Append a message after the current error message, in the format "original: new"
+// Append a message after the current error message, in the format "original: new".
+// If e == nil, return nil.
 func Append(e error, msg string) Error {
 	if e == nil {
 		return nil
@@ -268,7 +288,7 @@ func Append(e error, msg string) Error {
 	return WrapSkipping(e, 1).Append(msg)
 }
 
-// Append a message after the current error message, in the format "original: new"
+// Appendf is the same as Append, but uses fmt.Sprintf().
 func Appendf(e error, format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
@@ -276,7 +296,8 @@ func Appendf(e error, format string, args ...interface{}) Error {
 	return WrapSkipping(e, 1).Appendf(format, args...)
 }
 
-// Prepend a message after the current error message, in the format "new: original"
+// Prepend a message after the current error message, in the format "new: original".
+// If e == nil, return nil.
 func Prepend(e error, msg string) Error {
 	if e == nil {
 		return nil
@@ -284,7 +305,7 @@ func Prepend(e error, msg string) Error {
 	return WrapSkipping(e, 1).Prepend(msg)
 }
 
-// Prepend a message after the current error message, in the format "new: original"
+// Prependf is the same as Prepend, but uses fmt.Sprintf()
 func Prependf(e error, format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
@@ -292,7 +313,25 @@ func Prependf(e error, format string, args ...interface{}) Error {
 	return WrapSkipping(e, 1).Prependf(format, args...)
 }
 
-// Check whether e is equal to or wraps the original, at any depth
+// Is checks whether e is equal to or wraps the original, at any depth.
+// If e == nil, return false.
+// This is useful if your package uses the common golang pattern of
+// exported error constants.  If your package exports an ErrEOF constant,
+// which is initialized like this:
+//
+//     var ErrEOF = errors.New("End of file error")
+//
+// ...and your user wants to compare an error returned by your package
+// with ErrEOF:
+//
+//     err := urpack.Read()
+//     if err == urpack.ErrEOF {
+//
+// ...the comparison will fail if the error has been wrapped by merry
+// at some point.  Replace the comparison with:
+//
+//     if merry.Is(err, urpack.ErrEOF) {
+//
 func Is(e error, originals ...error) bool {
 	is := func(e, original error) bool {
 		for {
@@ -317,10 +356,11 @@ func Is(e error, originals ...error) bool {
 	return false
 }
 
-// Return the innermost underlying error.
+// Unwrap returns the innermost underlying error.
 // Only useful in advanced cases, like if you need to
 // cast the underlying error to some type to get
 // additional information from it.
+// If e == nil, return nil.
 func Unwrap(e error) error {
 	if e == nil {
 		return nil
@@ -357,19 +397,18 @@ type merryErr struct {
 	key, value interface{}
 }
 
-// implements golang's error interface
+// Error implements golang's error interface
 // returns the message value if set, otherwise
 // delegates to inner error
 func (e *merryErr) Error() string {
 	if verbose {
 		return Details(e)
-	} else {
-		m := Message(e)
-		if m == "" {
-			return UserMessage(e)
-		}
-		return m
 	}
+	m := Message(e)
+	if m == "" {
+		return UserMessage(e)
+	}
+	return m
 }
 
 // return a new error with additional context
