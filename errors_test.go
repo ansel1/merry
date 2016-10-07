@@ -352,6 +352,9 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, "two", Message(e))
 	assert.NotEqual(t, "two", e.Error())
 
+	// when error is nil, return ""
+	assert.Empty(t, Message(nil))
+
 }
 
 func TestWithUserMessage(t *testing.T) {

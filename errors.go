@@ -247,6 +247,9 @@ func UserMessage(e error) string {
 //
 // If e is nil, returns "".
 func Message(e error) string {
+	if e == nil {
+		return ""
+	}
 	m, _ := Value(e, message).(string)
 	if m == "" {
 		return Unwrap(e).Error()
