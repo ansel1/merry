@@ -105,6 +105,7 @@ Details
     err := merry.New("boom")
     m := merry.Stacktrace(err) // just the stacktrace
     m = merry.Details(err) // error message and stacktrace
+    fmt.Sprintf("%+v", err) == merry.Details(err) // errors implement fmt.Formatter
     ```
    
 * Add your own context info

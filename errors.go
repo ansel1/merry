@@ -26,10 +26,16 @@ package merry
 // convenient chaining:
 //
 //     return merry.New("Invalid body").WithHTTPCode(400)
-
+//
+// merry.Errors also implement fmt.Formatter, similar to github.com/pkg/errors.
+//
+//     fmt.Sprintf("%+v", e) == merry.Details(e)
+//
+// pkg/errors Cause() interface is not implemented (yet).
 import (
 	"errors"
 	"fmt"
+	"io"
 	"runtime"
 )
 
@@ -79,6 +85,7 @@ type Error interface {
 	Here() Error
 	WithStackSkipping(skip int) Error
 	WithHTTPCode(code int) Error
+	fmt.Formatter
 }
 
 // New creates a new error, with a stack attached.  The equivalent of golang's errors.New()
@@ -410,6 +417,25 @@ type merryErr struct {
 	err        error
 	key, value interface{}
 }
+
+// Format implements fmt.Formatter
+func (e *merryErr) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			io.WriteString(s, Details(e))
+			return
+		}
+		fallthrough
+	case 's':
+		io.WriteString(s, e.Error())
+	case 'q':
+		fmt.Fprintf(s, "%q", e.Error())
+	}
+}
+
+// make sure merryErr implements Error
+var _ Error = (*merryErr)(nil)
 
 // Error implements golang's error interface
 // returns the message value if set, otherwise

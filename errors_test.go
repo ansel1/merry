@@ -537,6 +537,14 @@ func TestMerryErr_Error(t *testing.T) {
 
 }
 
+func TestMerryErr_Format(t *testing.T) {
+	e := New("Hi")
+	assert.Equal(t, fmt.Sprintf("%v", e), e.Error())
+	assert.Equal(t, fmt.Sprintf("%s", e), e.Error())
+	assert.Equal(t, fmt.Sprintf("%q", e), fmt.Sprintf("%q", e.Error()))
+	assert.Equal(t, fmt.Sprintf("%+v", e), Details(e))
+}
+
 func BenchmarkNew_withStackCapture(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		New("boom")
