@@ -136,6 +136,22 @@ func WrapSkipping(e error, skip int) Error {
 	}
 }
 
+// ReplaceNativeMessage hides the original error in the data if the error was a native error, to avoid
+// messy unpredictable error messages; but if it was already a merry error, prepends the new message
+func ReplaceNativeMessage(e error, msg string) Error {
+	if e == nil {
+		return nil
+	}
+	wrapped := WrapSkipping(e, 1)
+
+	if wrapped == e {
+		// Was already a merry error
+		return wrapped.Prepend(msg)
+	} else {
+		return wrapped.WithValue("error", e.Error()).WithMessage(msg)
+	}
+}
+
 // WithValue adds a context an error.  If the key was already set on e,
 // the new value will take precedence.
 // If e is nil, returns nil.
