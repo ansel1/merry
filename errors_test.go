@@ -131,6 +131,26 @@ func TestWrap(t *testing.T) {
 	assert.Nil(t, WrapSkipping(nil, 1))
 }
 
+func TestReplaceNativeMessage(t *testing.T) {
+	nativeError := errors.New("ugly details 456")
+	merryError := New("pretty details")
+
+	wrappedNative := ReplaceNativeMessage(nativeError, "nice summary")
+	wrappedMerry := ReplaceNativeMessage(merryError, "nice summary")
+	wrappedWrapped := ReplaceNativeMessage(wrappedNative, "redundant summary")
+
+	assert.Equal(t, "nice summary", wrappedNative.Error())
+	assert.Equal(t, "ugly details 456", Value(wrappedNative, "error"))
+
+	assert.Equal(t, "nice summary: pretty details", wrappedMerry.Error())
+	assert.Nil(t, Value(wrappedMerry, "error"))
+
+	assert.Equal(t, "redundant summary: nice summary", wrappedWrapped.Error())
+	assert.Equal(t, "ugly details 456", Value(wrappedWrapped, "error"))
+
+	assert.Nil(t, ReplaceNativeMessage(nil, "foo"))
+}
+
 func TestHere(t *testing.T) {
 	ParseError := New("Parse error")
 	InvalidCharSet := WithMessage(ParseError, "Invalid charset").WithHTTPCode(400)
