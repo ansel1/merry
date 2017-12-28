@@ -1,4 +1,4 @@
-merry [![Build Status](https://travis-ci.org/ansel1/merry.svg?branch=master)](https://travis-ci.org/ansel1/merry) [![GoDoc](https://godoc.org/github.com/ansel1/merry?status.png)](https://godoc.org/github.com/ansel1/merry) [![Go Report Card](https://goreportcard.com/badge/github.com/ansel1/merry)](https://goreportcard.com/github.com/ansel1/merry)
+merry [![Build Status](https://travis-ci.org/ansel1/merry.svg?branch=master)](https://travis-ci.org/ansel1/merry) [![GoDoc](https://godoc.org/github.com/ansel1/merry?status.png)](https://godoc.org/github.com/ansel1/merry) [![Go Report Card](https://goreportcard.com/badge/github.com/ansel1/merry)](https://goreportcard.com/report/github.com/ansel1/merry)
 =====
 
 Make your golang errors merry, with stacktraces, inheritance, and arbitrary additional context.
