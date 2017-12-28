@@ -245,7 +245,7 @@ func UserMessage(e error) string {
 
 // Message returns just the error message.  It is equivalent to
 // Error() when Verbose is false.
-// The behavior of Error() is (psuedo-code):
+// The behavior of Error() is (pseudo-code):
 //
 //     if verbose
 //       Details(e)
