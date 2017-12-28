@@ -90,18 +90,14 @@ func TestDetails(t *testing.T) {
 func TestStacktrace(t *testing.T) {
 	_, _, rl, _ := runtime.Caller(0)
 	var err error = New("bang")
-	if !(len(Stack(err)) > 0) {
-		t.Fatal("stack length is 0")
-	}
+
+	assert.NotEmpty(t, Stack(err))
 	s := Stacktrace(err)
 	t.Log(s)
 	lines := strings.Split(s, "\n")
-	if len(lines) < 1 {
-		t.Fatal("stacktrace is empty")
-	}
-	if !strings.Contains(lines[0], fmt.Sprintf("errors_test.go:%d", rl+1)) {
-		t.Fatal("stacktrace is wrong")
-	}
+	assert.NotEmpty(t, lines)
+	assert.Equal(t, "github.com/ansel1/merry.TestStacktrace", lines[0])
+	assert.Contains(t, lines[1], fmt.Sprintf("errors_test.go:%d", rl+1))
 	// Allow nil error
 	assert.Empty(t, Stacktrace(nil))
 }
@@ -415,6 +411,7 @@ func TestSourceLine(t *testing.T) {
 
 	err := New("foo")
 	source = SourceLine(err)
+	t.Log(source)
 	assert.NotEqual(t, source, "")
 
 	parts := strings.Split(source, ":")

@@ -4,15 +4,17 @@ import (
 	"bytes"
 	"fmt"
 
-	goerr "github.com/go-errors/errors"
+	"runtime"
 )
 
 // Location returns zero values if e has no stacktrace
 func Location(e error) (file string, line int) {
 	s := Stack(e)
 	if len(s) > 0 {
-		sf := goerr.NewStackFrame(s[0])
-		return sf.File, sf.LineNumber
+		fnc := runtime.FuncForPC(s[0])
+		if fnc != nil {
+			return fnc.FileLine(s[0])
+		}
 	}
 	return "", 0
 }
@@ -36,8 +38,12 @@ func Stacktrace(e error) string {
 	if len(s) > 0 {
 		buf := bytes.Buffer{}
 		for _, fp := range s {
-			sf := goerr.NewStackFrame(fp)
-			buf.WriteString(sf.String())
+			fnc := runtime.FuncForPC(fp)
+			if fnc != nil {
+				f, l := fnc.FileLine(fp)
+				buf.WriteString(fnc.Name())
+				buf.WriteString(fmt.Sprintf("\n\t%s:%d\n", f, l))
+			}
 		}
 		return buf.String()
 	}
