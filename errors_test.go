@@ -414,7 +414,8 @@ func TestSourceLine(t *testing.T) {
 	t.Log(source)
 	assert.NotEqual(t, source, "")
 
-	parts := strings.Split(source, ":")
+	idx := strings.LastIndex(source, ":")
+	parts := []string{source[:idx], source[idx+1:]}
 	assert.Equal(t, len(parts), 2)
 
 	if !strings.HasSuffix(parts[0], "errors_test.go") {
