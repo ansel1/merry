@@ -416,15 +416,12 @@ func TestSourceLine(t *testing.T) {
 	t.Log(source)
 	assert.NotEqual(t, source, "")
 
-	p := regexp.MustCompile(`^(.*):(\d+)$`)
+	p := regexp.MustCompile(`^.*errors_test\.go:(\d+)$`)
 
 	parts := p.FindStringSubmatch(source)
 	require.NotNil(t, parts, "source did not match path pattern: %v", source)
 
-	if !strings.HasSuffix(parts[1], "errors_test.go") {
-		t.Error("source line should contain file name")
-	}
-	if i, e := strconv.Atoi(parts[2]); e != nil {
+	if i, e := strconv.Atoi(parts[1]); e != nil {
 		t.Errorf("not a number: %s", parts[1])
 	} else if i <= 0 {
 		t.Errorf("source line must be > 1: %s", parts[1])
