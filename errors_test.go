@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"regexp"
 )
 
 func TestNew(t *testing.T) {
@@ -409,18 +411,20 @@ func TestSourceLine(t *testing.T) {
 	source := SourceLine(nil)
 	assert.Equal(t, source, "")
 
-	err := New("foo")
+	var err error = New("foo")
 	source = SourceLine(err)
 	t.Log(source)
 	assert.NotEqual(t, source, "")
 
-	parts := strings.Split(source, ":")
-	assert.Equal(t, len(parts), 2)
+	p := regexp.MustCompile(`^(.*):(\d+)$`)
 
-	if !strings.HasSuffix(parts[0], "errors_test.go") {
+	parts := p.FindStringSubmatch(source)
+	require.NotNil(t, parts, "source did not match path pattern: %v", source)
+
+	if !strings.HasSuffix(parts[1], "errors_test.go") {
 		t.Error("source line should contain file name")
 	}
-	if i, e := strconv.Atoi(parts[1]); e != nil {
+	if i, e := strconv.Atoi(parts[2]); e != nil {
 		t.Errorf("not a number: %s", parts[1])
 	} else if i <= 0 {
 		t.Errorf("source line must be > 1: %s", parts[1])
