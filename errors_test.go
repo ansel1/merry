@@ -130,39 +130,39 @@ func TestWrap(t *testing.T) {
 }
 
 func TestHere(t *testing.T) {
-	ParseError := New("Parse error")
-	InvalidCharSet := WithMessage(ParseError, "Invalid charset").WithHTTPCode(400)
-	InvalidSyntax := ParseError.WithMessage("Syntax error")
+	parseError := New("Parse error")
+	invalidCharSet := WithMessage(parseError, "Invalid charset").WithHTTPCode(400)
+	invalidSyntax := parseError.WithMessage("Syntax error")
 
-	if !Is(InvalidCharSet, ParseError) {
-		t.Error("InvalidCharSet should be a ParseError")
+	if !Is(invalidCharSet, parseError) {
+		t.Error("invalidCharSet should be a parseError")
 	}
 
 	_, _, rl, _ := runtime.Caller(0)
-	pe := Here(ParseError)
+	pe := Here(parseError)
 	_, l := Location(pe)
 	if l != rl+1 {
-		t.Errorf("Extend should capture a new stack.  Expected %d, got %d", rl+1, l)
+		t.Errorf("Here should capture a new stack.  Expected %d, got %d", rl+1, l)
 	}
 
-	if !Is(pe, ParseError) {
-		t.Error("pe should be a ParseError")
+	if !Is(pe, parseError) {
+		t.Error("pe should be a parseError")
 	}
-	if Is(pe, InvalidCharSet) {
-		t.Error("pe should not be an InvalidCharSet")
+	if Is(pe, invalidCharSet) {
+		t.Error("pe should not be an invalidCharSet")
 	}
 	if pe.Error() != "Parse error" {
 		t.Errorf("child error's message is wrong, expected: Parse error, got %v", pe.Error())
 	}
-	icse := Here(InvalidCharSet)
-	if !Is(icse, ParseError) {
-		t.Error("icse should be a ParseError")
+	icse := Here(invalidCharSet)
+	if !Is(icse, parseError) {
+		t.Error("icse should be a parseError")
 	}
-	if !Is(icse, InvalidCharSet) {
-		t.Error("icse should be an InvalidCharSet")
+	if !Is(icse, invalidCharSet) {
+		t.Error("icse should be an invalidCharSet")
 	}
-	if Is(icse, InvalidSyntax) {
-		t.Error("icse should not be an InvalidSyntax")
+	if Is(icse, invalidSyntax) {
+		t.Error("icse should not be an invalidSyntax")
 	}
 	if icse.Error() != "Invalid charset" {
 		t.Errorf("child's message is wrong.  Expected: Invalid charset, got: %v", icse.Error())
@@ -173,6 +173,20 @@ func TestHere(t *testing.T) {
 
 	// nil -> nil
 	assert.Nil(t, Here(nil))
+}
+
+func TestHereSkipping(t *testing.T) {
+	var e error = New("boom")
+
+	f := func() error {
+		return HereSkipping(e, 1)
+	}
+
+	_, _, rl, _ := runtime.Caller(0)
+	e = f()
+
+	_, l := Location(e)
+	require.Equal(t, rl+1, l)
 }
 
 func TestUnwrap(t *testing.T) {

@@ -187,6 +187,11 @@ func main() {
     
 See inline docs for more details.
 
+Plugs
+-----
+
+Check out my HTTP client library, [github.com/gemalto/requester](https://github.com/gemalto/requester)!  
+
 License
 -------
 

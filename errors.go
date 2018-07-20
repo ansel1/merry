@@ -192,14 +192,20 @@ func Values(e error) map[interface{}]interface{} {
 // Useful when returning copies of exported package errors.
 // If e is nil, returns nil.
 func Here(e error) Error {
+	return HereSkipping(e, 1)
+}
+
+// HereSkipping returns an error with a new stacktrace, at the call site
+// of HereSkipping() - skip frames.
+func HereSkipping(e error, skip int) Error {
 	switch m := e.(type) {
 	case nil:
 		return nil
 	case *merryErr:
 		// optimization: only capture the stack once, since its expensive
-		return m.WithStackSkipping(1)
+		return m.WithStackSkipping(1 + skip)
 	default:
-		return WrapSkipping(e, 1)
+		return WrapSkipping(e, 1+skip)
 	}
 }
 
