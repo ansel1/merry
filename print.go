@@ -64,5 +64,9 @@ func Details(e error) string {
 	if s != "" {
 		msg += "\n\n" + s
 	}
+
+	if c := Cause(e); c != nil {
+		msg += "\n\nCaused By: " + Details(c)
+	}
 	return msg
 }

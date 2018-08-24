@@ -557,6 +557,27 @@ func TestMerryErr_Format(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%+v", e), Details(e))
 }
 
+func TestCause(t *testing.T) {
+
+	e1 := New("low level error")
+	e2 := New("high level error")
+
+	e3 := WithCause(e2, e1)
+
+	assert.True(t, Is(e3, e1))
+	assert.True(t, Is(e3, e2))
+
+	assert.Equal(t, e1, Cause(e3))
+	assert.Equal(t, e1, e3.(Error).Cause())
+
+	assert.Nil(t, Cause(e2))
+	assert.Nil(t, Cause(e1))
+	assert.Nil(t, e1.(Error).Cause())
+	assert.Nil(t, e2.(Error).Cause())
+
+	assert.Equal(t, e3.Error(), e2.Error()+": "+e1.Error())
+}
+
 func BenchmarkNew_withStackCapture(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		New("boom")
