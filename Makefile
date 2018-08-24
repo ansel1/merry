@@ -35,6 +35,9 @@ testreport: builddir
 	go2xunit -input build/test.out -output build/test.xml
 	! grep -e "--- FAIL" -e "^FAIL" build/test.out
 
+bench:
+	go test -bench .
+
 vendor.update:
 	dep ensure --update
 

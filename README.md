@@ -29,10 +29,10 @@ always creates a new error which wraps the original.
 You can also add your own additional information.
 
 The stack capturing feature can be turned off for better performance, though it's pretty fast.  Benchmarks
-on an early 2011 MacBook Pro, with go 1.7rc1:
+on an 2017 MacBook Pro, with go 1.10:
 
-    BenchmarkNew_withStackCapture-8      	 1000000	      1413 ns/op
-    BenchmarkNew_withoutStackCapture-8   	10000000	       218 ns/op
+    BenchmarkNew_withStackCapture-8      	 2000000	       749 ns/op
+    BenchmarkNew_withoutStackCapture-8   	20000000	        64.1 ns/op
 
 Details
 -------
