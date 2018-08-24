@@ -288,6 +288,23 @@ func Cause(e error) error {
 	return c
 }
 
+// RootCause returns the innermost cause of the argument (i.e. the last
+// error in the cause chain)
+func RootCause(e error) error {
+	if e == nil {
+		return e
+	}
+	for {
+		c := Cause(e)
+		if c == nil {
+			break
+		} else {
+			e = c
+		}
+	}
+	return e
+}
+
 // WithCause returns an error based on the first argument, with the cause
 // set to the second argument.  If e is nil, returns nil.
 func WithCause(e error, cause error) error {

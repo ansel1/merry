@@ -563,6 +563,8 @@ func TestCause(t *testing.T) {
 	e2 := New("high level error")
 
 	e3 := WithCause(e2, e1)
+	e4 := New("top level error")
+	e5 := e4.WithCause(e3)
 
 	assert.True(t, Is(e3, e1))
 	assert.True(t, Is(e3, e2))
@@ -576,6 +578,15 @@ func TestCause(t *testing.T) {
 	assert.Nil(t, e2.(Error).Cause())
 
 	assert.Equal(t, e3.Error(), e2.Error()+": "+e1.Error())
+
+	assert.True(t, Is(e5, e4))
+	assert.True(t, Is(e5, e3))
+	assert.True(t, Is(e5, e2))
+	assert.True(t, Is(e5, e1))
+
+	assert.Equal(t, e3, Cause(e5))
+	assert.NotEqual(t, e3, RootCause(e5))
+	assert.Equal(t, e1, RootCause(e5))
 }
 
 func BenchmarkNew_withStackCapture(b *testing.B) {
