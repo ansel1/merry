@@ -307,7 +307,7 @@ func RootCause(e error) error {
 
 // WithCause returns an error based on the first argument, with the cause
 // set to the second argument.  If e is nil, returns nil.
-func WithCause(e error, cause error) error {
+func WithCause(e error, cause error) Error {
 	if e == nil {
 		return nil
 	}
