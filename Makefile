@@ -43,14 +43,11 @@ vendor.ensure:
 
 ### TOOLS
 
-tools: buildtools
+tools:
 	go get -u github.com/golang/dep/cmd/dep
-
-buildtools:
-# installs tools used during build
 	go get -u github.com/tebeka/go2xunit
 	go get -u golang.org/x/tools/cmd/cover
 	go get -u github.com/golang/lint/golint
 
-.PHONY: all build builddir vet lint clean fmt test testreport vendor.update vendor.ensure tools buildtools
+.PHONY: all build builddir vet lint clean fmt test testreport vendor.update vendor.ensure tools
 
