@@ -587,6 +587,9 @@ func TestCause(t *testing.T) {
 	assert.Equal(t, e3, Cause(e5))
 	assert.NotEqual(t, e3, RootCause(e5))
 	assert.Equal(t, e1, RootCause(e5))
+
+	// ensure cause message isn't double appended
+	assert.Equal(t, "red: high level error: low level error", Prepend(e3, "red").Error())
 }
 
 func BenchmarkNew_withStackCapture(b *testing.B) {

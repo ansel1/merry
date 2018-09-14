@@ -57,14 +57,14 @@ func SetStackCaptureEnabled(enabled bool) {
 
 // VerboseDefault returns the global default for verbose mode.
 // When true, e.Error() == Details(e)
-// When false, e.Error() == Message(e)
+// When false, e.Error() == Message(e) + Cause(e)
 func VerboseDefault() bool {
 	return verbose
 }
 
 // SetVerboseDefault sets the global default for verbose mode.
 // When true, e.Error() == Details(e)
-// When false, e.Error() == Message(e)
+// When false, e.Error() == Message(e) + Cause(e)
 func SetVerboseDefault(b bool) {
 	verbose = b
 }
@@ -268,12 +268,6 @@ func Message(e error) string {
 	m, _ := Value(e, message).(string)
 	if m == "" {
 		m = Unwrap(e).Error()
-	}
-	// add cause
-	if c := Cause(e); c != nil {
-		if ce := c.Error(); ce != "" {
-			m += ": " + ce
-		}
 	}
 	return m
 }
@@ -514,7 +508,13 @@ func (e *merryErr) Error() string {
 	}
 	m := Message(e)
 	if m == "" {
-		return UserMessage(e)
+		m = UserMessage(e)
+	}
+	// add cause
+	if c := Cause(e); c != nil {
+		if ce := c.Error(); ce != "" {
+			m += ": " + ce
+		}
 	}
 	return m
 }
@@ -596,7 +596,7 @@ func (e *merryErr) Append(msg string) Error {
 	if e == nil {
 		return nil
 	}
-	return e.WithMessagef("%s: %s", e.Error(), msg)
+	return e.WithMessagef("%s: %s", Message(e), msg)
 }
 
 // Append a message after the current error message, in the format "original: new"
@@ -612,7 +612,7 @@ func (e *merryErr) Prepend(msg string) Error {
 	if e == nil {
 		return nil
 	}
-	return e.WithMessagef("%s: %s", msg, e.Error())
+	return e.WithMessagef("%s: %s", msg, Message(e))
 }
 
 // Prepend a message before the current error message, in the format "new: original"
