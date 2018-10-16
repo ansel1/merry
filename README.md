@@ -190,7 +190,8 @@ See inline docs for more details.
 Plugs
 -----
 
-Check out my HTTP client library, [github.com/gemalto/requester](https://github.com/gemalto/requester)!  
+- Check out my HTTP client library: [github.com/gemalto/requester](https://github.com/gemalto/requester)
+- Check out my log library: [github.com/gemalto/flume](https://github.com/gemalto/flume)
 
 License
 -------
