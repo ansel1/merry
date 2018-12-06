@@ -50,7 +50,7 @@ tools:
 	go get -u github.com/golang/dep/cmd/dep
 	go get -u github.com/tebeka/go2xunit
 	go get -u golang.org/x/tools/cmd/cover
-	go get -u github.com/golang/lint/golint
+	go get -u golang.org/x/lint/golint
 
 .PHONY: all build builddir vet lint clean fmt test testreport vendor.update vendor.ensure tools
 
