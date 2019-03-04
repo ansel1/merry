@@ -1,48 +1,37 @@
 # Expands to list this project's go packages, excluding the vendor folder
 SHELL = bash
-PACKAGES = $$(go list ./... | grep -v /vendor/)
-BUILD_FLAGS =
 
 all: fmt build lint test
 
 build:
-	go build $(BUILD_FLAGS) $(PACKAGES)
-
-builddir:
-	@if [ ! -d build ]; then mkdir build; fi
+	go build
 
 lint:
-	golint -set_exit_status $(PACKAGES)
+	golint -set_exit_status
 
 clean:
-	rm -rf build/*
+	rm -rf build
 
 fmt:
-	go fmt $(PACKAGES)
+	go fmt
 
 test:
-	go test $(BUILD_FLAGS) $(PACKAGES)
+	go test
 
-testreport: builddir
+coverage:
+	@if [ ! -d build ]; then mkdir build; fi
 	# runs go test and generate coverage report
-	go test $(BUILD_FLAGS) -covermode=count -coverprofile=build/coverage.out $(PACKAGES)
+	go test -covermode=count -coverprofile=build/coverage.out
 	go tool cover -html=build/coverage.out -o build/coverage.html
 
 bench:
 	go test -bench .
 
-vendor.update:
-	dep ensure --update
-
-vendor.ensure:
-	dep ensure
-
 ### TOOLS
 
 tools:
-	go get -u github.com/golang/dep/cmd/dep
 	go get -u golang.org/x/tools/cmd/cover
 	go get -u golang.org/x/lint/golint
 
-.PHONY: all build builddir lint clean fmt test testreport vendor.update vendor.ensure tools
+.PHONY: all build lint clean fmt test coverage tools
 
