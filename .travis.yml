@@ -5,7 +5,7 @@ env:
 
 install:
   - go get -u golang.org/x/lint/golint
-  - go get
+  - go get .
 
 go:
   - 1.9
