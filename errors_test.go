@@ -210,17 +210,18 @@ func TestNilValues(t *testing.T) {
 	// http://devs.cloudimmunity.com/gotchas-and-common-mistakes-in-go-golang/index.html#nil_in_nil_in_vals
 	// an interface value isn't nil unless both the type *and* the value are nil
 	// make sure we aren't accidentally returning nil values but non-nil types
-	type e struct{}
-	var anE *e
-	type f interface{}
-	var anF f
-	if anF != nil {
-		t.Error("anF should have been nil here, because it doesn't have a concete type yet")
-	}
-	anF = anE
-	if anF == nil {
-		t.Error("anF should have been not nil here, because it now has a concrete type")
-	}
+	//
+	// type e struct{}
+	// var anE *e
+	// type f interface{}
+	// var anF f
+	// if anF != nil {
+	// 	t.Error("anF should have been nil here, because it doesn't have a concete type yet")
+	// }
+	// anF = anE
+	// if anF == nil {
+	// 	t.Error("anF should have been not nil here, because it now has a concrete type")
+	// }
 	if WithMessage(WithHTTPCode(Wrap(nil), 400), "hey") != nil {
 		t.Error("by using interfaces in all the returns, this should have remained a true nil value")
 	}
@@ -594,13 +595,13 @@ func TestCause(t *testing.T) {
 
 func BenchmarkNew_withStackCapture(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		New("boom")
+		_ = New("boom")
 	}
 }
 
 func BenchmarkNew_withoutStackCapture(b *testing.B) {
 	SetStackCaptureEnabled(false)
 	for i := 0; i < b.N; i++ {
-		New("boom")
+		_ = New("boom")
 	}
 }

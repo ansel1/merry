@@ -61,10 +61,8 @@ func RegisterDetail(label string, key interface{}) {
 func Location(e error) (file string, line int) {
 	s := Stack(e)
 	if len(s) > 0 {
-		fnc := runtime.FuncForPC(s[0])
-		if fnc != nil {
-			return fnc.FileLine(s[0])
-		}
+		fnc, _ := runtime.CallersFrames(s[:1]).Next()
+		return fnc.File, fnc.Line
 	}
 	return "", 0
 }
@@ -87,13 +85,15 @@ func Stacktrace(e error) string {
 	s := Stack(e)
 	if len(s) > 0 {
 		buf := bytes.Buffer{}
-		for _, fp := range s {
-			fnc := runtime.FuncForPC(fp)
-			if fnc != nil {
-				f, l := fnc.FileLine(fp)
-				buf.WriteString(fnc.Name())
-				buf.WriteString(fmt.Sprintf("\n\t%s:%d\n", f, l))
+		frames := runtime.CallersFrames(s)
+		for {
+			frame, more := frames.Next()
+			buf.WriteString(frame.Function)
+			buf.WriteString(fmt.Sprintf("\n\t%s:%d\n", frame.File, frame.Line))
+			if !more {
+				break
 			}
+
 		}
 		return buf.String()
 	}

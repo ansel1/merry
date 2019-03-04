@@ -3,16 +3,13 @@ SHELL = bash
 PACKAGES = $$(go list ./... | grep -v /vendor/)
 BUILD_FLAGS =
 
-all: fmt build vet lint test
+all: fmt build lint test
 
 build:
 	go build $(BUILD_FLAGS) $(PACKAGES)
 
 builddir:
 	@if [ ! -d build ]; then mkdir build; fi
-
-vet:
-	go vet $(PACKAGES)
 
 lint:
 	golint -set_exit_status $(PACKAGES)
@@ -27,13 +24,9 @@ test:
 	go test $(BUILD_FLAGS) $(PACKAGES)
 
 testreport: builddir
-	# runs go test in each package one at a time, generating coverage profiling
-    # finally generates a combined junit test report and a test coverage report
-    # note: running coverage messes up line numbers in error stacktraces
-	go test $(BUILD_FLAGS) -v -covermode=count -coverprofile=build/coverage.out $(PACKAGES) | tee build/test.out
+	# runs go test and generate coverage report
+	go test $(BUILD_FLAGS) -covermode=count -coverprofile=build/coverage.out $(PACKAGES)
 	go tool cover -html=build/coverage.out -o build/coverage.html
-	go2xunit -input build/test.out -output build/test.xml
-	! grep -e "--- FAIL" -e "^FAIL" build/test.out
 
 bench:
 	go test -bench .
@@ -48,9 +41,8 @@ vendor.ensure:
 
 tools:
 	go get -u github.com/golang/dep/cmd/dep
-	go get -u github.com/tebeka/go2xunit
 	go get -u golang.org/x/tools/cmd/cover
 	go get -u golang.org/x/lint/golint
 
-.PHONY: all build builddir vet lint clean fmt test testreport vendor.update vendor.ensure tools
+.PHONY: all build builddir lint clean fmt test testreport vendor.update vendor.ensure tools
 
