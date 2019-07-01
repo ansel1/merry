@@ -37,6 +37,7 @@ on an 2017 MacBook Pro, with go 1.10:
 Details
 -------
 
+* Support for go 2's errors.Is and errors.As functions
 * New errors have a stacktrace captured where they are created
 * Add a stacktrace to existing errors (captured where they are wrapped)
 
@@ -45,25 +46,52 @@ Details
     return merry.Wrap(err)  // no-op if err is already merry
     ```
         
-* Allow golang idiom of comparing an err value to an exported value, using `Is()`
+* Add a stacktrace to a sentinel error
 
     ```go
-    var ParseError = merry.New("Parse error")
+    var ParseError = merry.New("parse error")
     
     func Parse() error {
-        err := ParseError.Here() // captures a stacktrace here
-        merry.Is(err, ParseError)  // instead of err == ParseError
+    	// ...
+        return ParseError.Here() // captures a stacktrace here
     }
     ```
-        
-* Change the message on an error, while still using `Is()` to compare to the original error
-
+  
+* The golang idiom for testing errors against sentinel values or type checking them
+  doesn't work with merry errors, since they are wrapped.  Use Is() for sentinel value
+  checks, or the new go 2 errors.As() function for testing error types. 
+  
     ```go
-    err := merry.WithMessage(ParseError, "Bad input")
-    merry.Is(err, ParseError) // yes it is
+    err := Parse()
+  
+    // sentinel value check
+    if merry.Is(err, ParseError) {
+       // ...
+    }
+  
+    // type check
+    if serr, ok := merry.Unwrap(err).(*SyntaxError); ok {
+      // ...
+    }
+  
+    // these only work in go1.13
+    
+    // sentinel value check
+    if errors.Is(err, ParseError) {}
+  
+    // type check
+    var serr *SyntaxError
+    if errors.As(err, &serr) {}
     ```
         
-* `Is()` supports hierarchies of errors
+* Add to the message on an error.
+
+    ```go
+    err := merry.Prepend(ParseError, "reading config").Append("bad input")
+    fmt.Println(err.Error()) // reading config: parse error: bad input
+    ```
+        
+* Hierarchies of errors
 
     ```go
     var ParseError = merry.New("Parse error")
