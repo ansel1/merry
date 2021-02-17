@@ -12,3 +12,5 @@ var is = errors.Is
 
 // implements As by delegating to errors
 var as = errors.As
+
+var unwrap = errors.Unwrap

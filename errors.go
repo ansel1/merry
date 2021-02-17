@@ -87,20 +87,13 @@ func WithValue(e error, key, value interface{}) Error {
 
 // Value returns the value for key, or nil if not set.
 // If e is nil, returns nil.
-func Value(e error, key interface{}) interface{} {
-	for {
-		switch m := e.(type) {
-		case nil:
-			return nil
-		case *merryErr:
-			if m.key == key {
-				return m.value
-			}
-			e = m.err
-		default:
-			return nil
-		}
+func Value(err error, key interface{}) interface{} {
+	var valuer interface{ Value(interface{}) interface{} }
+	if as(err, &valuer) {
+		return valuer.Value(key)
 	}
+
+	return nil
 }
 
 // Values returns a map of all values attached to the error
@@ -113,7 +106,7 @@ func Values(e error) map[interface{}]interface{} {
 	}
 	var values map[interface{}]interface{}
 	for {
-		w, ok := e.(*merryErr)
+		w, ok := e.(*errImpl)
 		if !ok {
 			return values
 		}
@@ -357,7 +350,7 @@ func Unwrap(e error) error {
 		return nil
 	}
 	for {
-		w, ok := e.(*merryErr)
+		w, ok := e.(*errImpl)
 		if !ok {
 			return e
 		}
@@ -375,19 +368,19 @@ func captureStack(err error, skip int, force bool) Error {
 		return nil
 	}
 	if !force && (!captureStacks || hasStack(err)) {
-		if merr, ok := err.(*merryErr); ok {
+		if merr, ok := err.(*errImpl); ok {
 			return merr
 		}
-		// wrap just to return the correct type.  We need to return a *merryErr
+		// wrap just to return the correct type.  We need to return a Error
 		// to accommodate the chainable API
-		return &merryErr{
+		return &errImpl{
 			err: err,
 		}
 	}
 
 	s := make([]uintptr, MaxStackDepth)
 	length := runtime.Callers(2+skip, s[:])
-	return &merryErr{
+	return &errImpl{
 		err:   err,
 		key:   errKeyStack,
 		value: s[:length],
@@ -396,7 +389,7 @@ func captureStack(err error, skip int, force bool) Error {
 
 func hasStack(err error) bool {
 	for err != nil {
-		if e, ok := err.(*merryErr); ok {
+		if e, ok := err.(*errImpl); ok {
 			if e.key == errKeyStack || e.key == errKeyFormattedStack {
 				return true
 			}

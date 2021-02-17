@@ -23,15 +23,15 @@ type Error interface {
 	fmt.Formatter
 }
 
-// make sure merryErr implements Error
-var _ Error = (*merryErr)(nil)
+// make sure errImpl implements Error
+var _ Error = (*errImpl)(nil)
 
 // return a new error with additional context
-func (e *merryErr) WithValue(key, value interface{}) Error {
+func (e *errImpl) WithValue(key, value interface{}) Error {
 	if e == nil {
 		return nil
 	}
-	return &merryErr{
+	return &errImpl{
 		err:   e,
 		key:   key,
 		value: value,
@@ -39,17 +39,17 @@ func (e *merryErr) WithValue(key, value interface{}) Error {
 }
 
 // Shorthand for capturing a new stack trace
-func (e *merryErr) Here() Error {
+func (e *errImpl) Here() Error {
 	return HereSkipping(e, 1)
 }
 
 // return a new error with a new stack capture
-func (e *merryErr) WithStackSkipping(skip int) Error {
+func (e *errImpl) WithStackSkipping(skip int) Error {
 	return HereSkipping(e, skip+1)
 }
 
 // return a new error with an http status code attached
-func (e *merryErr) WithHTTPCode(code int) Error {
+func (e *errImpl) WithHTTPCode(code int) Error {
 	if e == nil {
 		return nil
 	}
@@ -57,7 +57,7 @@ func (e *merryErr) WithHTTPCode(code int) Error {
 }
 
 // return a new error with a new message
-func (e *merryErr) WithMessage(msg string) Error {
+func (e *errImpl) WithMessage(msg string) Error {
 	if e == nil {
 		return nil
 	}
@@ -65,7 +65,7 @@ func (e *merryErr) WithMessage(msg string) Error {
 }
 
 // return a new error with a new formatted message
-func (e *merryErr) WithMessagef(format string, a ...interface{}) Error {
+func (e *errImpl) WithMessagef(format string, a ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
@@ -73,7 +73,7 @@ func (e *merryErr) WithMessagef(format string, a ...interface{}) Error {
 }
 
 // Add a message which is suitable for end users to see
-func (e *merryErr) WithUserMessage(msg string) Error {
+func (e *errImpl) WithUserMessage(msg string) Error {
 	if e == nil {
 		return nil
 	}
@@ -81,7 +81,7 @@ func (e *merryErr) WithUserMessage(msg string) Error {
 }
 
 // Add a message which is suitable for end users to see
-func (e *merryErr) WithUserMessagef(format string, args ...interface{}) Error {
+func (e *errImpl) WithUserMessagef(format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
@@ -89,7 +89,7 @@ func (e *merryErr) WithUserMessagef(format string, args ...interface{}) Error {
 }
 
 // Append a message after the current error message, in the format "original: new"
-func (e *merryErr) Append(msg string) Error {
+func (e *errImpl) Append(msg string) Error {
 	if e == nil {
 		return nil
 	}
@@ -97,7 +97,7 @@ func (e *merryErr) Append(msg string) Error {
 }
 
 // Append a message after the current error message, in the format "original: new"
-func (e *merryErr) Appendf(format string, args ...interface{}) Error {
+func (e *errImpl) Appendf(format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
@@ -105,7 +105,7 @@ func (e *merryErr) Appendf(format string, args ...interface{}) Error {
 }
 
 // Prepend a message before the current error message, in the format "new: original"
-func (e *merryErr) Prepend(msg string) Error {
+func (e *errImpl) Prepend(msg string) Error {
 	if e == nil {
 		return nil
 	}
@@ -113,7 +113,7 @@ func (e *merryErr) Prepend(msg string) Error {
 }
 
 // Prepend a message before the current error message, in the format "new: original"
-func (e *merryErr) Prependf(format string, args ...interface{}) Error {
+func (e *errImpl) Prependf(format string, args ...interface{}) Error {
 	if e == nil {
 		return nil
 	}
@@ -122,7 +122,7 @@ func (e *merryErr) Prependf(format string, args ...interface{}) Error {
 
 // WithCause returns an error based on the receiver, with the cause
 // set to the argument.
-func (e *merryErr) WithCause(err error) Error {
+func (e *errImpl) WithCause(err error) Error {
 	if e == nil || err == nil {
 		return e
 	}
