@@ -5,15 +5,15 @@ import (
 	"testing"
 )
 
-type Wrapper struct {
+type WrappingError struct {
 	err error
 }
 
-func (w *Wrapper) Error() string {
+func (w *WrappingError) Error() string {
 	return w.err.Error()
 }
 
-func (w *Wrapper) Unwrap() error {
+func (w *WrappingError) Unwrap() error {
 	return w.err
 }
 
@@ -39,7 +39,7 @@ func TestErrImpl_Is(t *testing.T) {
 	assert.False(t, is(e2, e3))
 
 	// test that it works with non-merry errors in the chain
-	var e4 error = &Wrapper{e2}
+	var e4 error = &WrappingError{e2}
 	var e5 error = Prepend(e4, "asdf")
 
 	assert.True(t, is(e5, e2))
@@ -68,7 +68,7 @@ func TestErrImpl_As(t *testing.T) {
 	assert.Equal(t, &rr, rerr)
 
 	// test that it works with non-merry errors in the chain
-	w := &Wrapper{err: e2}
+	w := &WrappingError{err: e2}
 	e3 := Prepend(w, "asdf")
 
 	rerr = nil

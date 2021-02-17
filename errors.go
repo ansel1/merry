@@ -51,19 +51,20 @@ func Errorf(format string, a ...interface{}) Error {
 // UserError creates a new error with a message intended for display to an
 // end user.
 func UserError(msg string) Error {
-	return WrapSkipping(errors.New(""), 1).WithUserMessage(msg)
+	return WrapSkipping(errors.New(msg), 1, SetUserMessage(msg))
 }
 
 // UserErrorf is like UserError, but uses fmt.Sprintf()
-func UserErrorf(format string, a ...interface{}) Error {
-	return WrapSkipping(errors.New(""), 1).WithUserMessagef(format, a...)
+func UserErrorf(format string, args ...interface{}) Error {
+	msg := fmt.Sprintf(format, args...)
+	return WrapSkipping(errors.New(msg), 1, SetUserMessage(msg))
 }
 
 // Wrap turns the argument into a merry.Error.  If the argument already is a
 // merry.Error, this is a no-op.
 // If e == nil, return nil
-func Wrap(e error) Error {
-	return captureStack(e, 1, false)
+func Wrap(err error, wrappers ...Wrapper) Error {
+	return WrapSkipping(err, 1, wrappers...)
 }
 
 // WrapSkipping turns the error arg into a merry.Error if the arg is not
@@ -71,18 +72,18 @@ func Wrap(e error) Error {
 // If e is nil, return nil.
 // If a merry.Error is created by this call, the stack captured will skip
 // `skip` frames (0 is the call site of `WrapSkipping()`)
-func WrapSkipping(e error, skip int) Error {
-	return captureStack(e, skip+1, false)
+func WrapSkipping(err error, skip int, wrappers ...Wrapper) Error {
+	for _, w := range wrappers {
+		err = w.Wrap(err, skip+1)
+	}
+	return captureStack(err, skip+1, false)
 }
 
 // WithValue adds a context an error.  If the key was already set on e,
 // the new value will take precedence.
 // If e is nil, returns nil.
-func WithValue(e error, key, value interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return WrapSkipping(e, 1).WithValue(key, value)
+func WithValue(err error, key, value interface{}) Error {
+	return WrapSkipping(err, 1, SetValue(key, value))
 }
 
 // Value returns the value for key, or nil if not set.
@@ -123,14 +124,14 @@ func Values(e error) map[interface{}]interface{} {
 // Here returns an error with a new stacktrace, at the call site of Here().
 // Useful when returning copies of exported package errors.
 // If e is nil, returns nil.
-func Here(e error) Error {
-	return captureStack(e, 1, true)
+func Here(err error) Error {
+	return captureStack(err, 1, StackCaptureEnabled())
 }
 
 // HereSkipping returns an error with a new stacktrace, at the call site
 // of HereSkipping() - skip frames.
-func HereSkipping(e error, skip int) Error {
-	return captureStack(e, skip+1, true)
+func HereSkipping(err error, skip int) Error {
+	return captureStack(err, skip+1, StackCaptureEnabled())
 }
 
 // Stack returns the stack attached to an error, or nil if one is not attached
@@ -143,10 +144,7 @@ func Stack(e error) []uintptr {
 // WithHTTPCode returns an error with an http code attached.
 // If e is nil, returns nil.
 func WithHTTPCode(e error, code int) Error {
-	if e == nil {
-		return nil
-	}
-	return WrapSkipping(e, 1).WithHTTPCode(code)
+	return WrapSkipping(e, 1, SetHTTPCode(code))
 }
 
 // HTTPCode converts an error to an http status code.  All errors
@@ -166,9 +164,6 @@ func HTTPCode(e error) int {
 // UserMessage returns the end-user safe message.  Returns empty if not set.
 // If e is nil, returns "".
 func UserMessage(e error) string {
-	if e == nil {
-		return ""
-	}
 	msg, _ := Value(e, errKeyUserMessage).(string)
 	return msg
 }
@@ -300,37 +295,9 @@ func Prependf(e error, format string, args ...interface{}) Error {
 	return WrapSkipping(e, 1).Prependf(format, args...)
 }
 
-// Is checks whether e is equal to or wraps the original, at any depth.
-// If e == nil, return false.
-// This is useful if your package uses the common golang pattern of
-// exported error constants.  If your package exports an ErrEOF constant,
-// which is initialized like this:
+// Is is equivalent to errors.Is, but tests against multiple targets.
 //
-//     var ErrEOF = errors.New("End of file error")
-//
-// ...and your user wants to compare an error returned by your package
-// with ErrEOF:
-//
-//     err := urpack.Read()
-//     if err == urpack.ErrEOF {
-//
-// ...the comparison will fail if the error has been wrapped by merry
-// at some point.  Replace the comparison with:
-//
-//     if merry.Is(err, urpack.ErrEOF) {
-//
-// Causes
-//
-// Is will also return true if any of the originals is in the cause chain
-// of e.  For example:
-//
-//     e1 := merry.New("base error")
-//     e2 := merry.New("library error")
-//     // e2 was caused by e1
-//     e3 := merry.WithCause(e1, e2)
-//     merry.Is(e3, e2)  // yes it is, because e3 is based on e2
-//     merry.Is(e3, e1)  // yes it is, because e1 was a cause of e3
-//
+// merry.Is(err1, err2, err3) == errors.Is(err1, err2) || errors.Is(err1, err3)
 func Is(e error, originals ...error) bool {
 	for _, o := range originals {
 		if is(e, o) {

@@ -15,6 +15,7 @@ const (
 	errKeyUserMessage
 	errKeyCause
 	errKeyFormattedStack
+	errKeyForceCapture
 )
 
 func (e errKey) String() string {
@@ -33,6 +34,8 @@ func (e errKey) String() string {
 		return "cause"
 	case errKeyFormattedStack:
 		return "formatted stack"
+	case errKeyForceCapture:
+		return "force stack capture"
 	}
 	return ""
 }
