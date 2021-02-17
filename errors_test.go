@@ -216,7 +216,7 @@ func TestNilValues(t *testing.T) {
 	// type f interface{}
 	// var anF f
 	// if anF != nil {
-	// 	t.Error("anF should have been nil here, because it doesn't have a concete type yet")
+	// 	t.Error("anF should have been nil here, because it doesn't have a concrete type yet")
 	// }
 	// anF = anE
 	// if anF == nil {
@@ -463,7 +463,7 @@ func TestValues(t *testing.T) {
 	assert.NotNil(t, values)
 	assert.Equal(t, values["key1"], "val1")
 	assert.Equal(t, values["key2"], "val2")
-	assert.NotNil(t, values[stack])
+	assert.NotNil(t, values[errKeyStack])
 
 	// make sure the last value attached is returned
 	e = WithValue(e, "key3", "val3")

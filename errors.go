@@ -35,60 +35,8 @@ package merry
 import (
 	"errors"
 	"fmt"
-	"io"
 	"runtime"
 )
-
-// MaxStackDepth is the maximum number of stackframes on any error.
-var MaxStackDepth = 50
-
-var captureStacks = true
-var verbose = false
-
-// StackCaptureEnabled returns whether stack capturing is enabled
-func StackCaptureEnabled() bool {
-	return captureStacks
-}
-
-// SetStackCaptureEnabled sets stack capturing globally.  Disabling stack capture can increase performance
-func SetStackCaptureEnabled(enabled bool) {
-	captureStacks = enabled
-}
-
-// VerboseDefault returns the global default for verbose mode.
-// When true, e.Error() == Details(e)
-// When false, e.Error() == Message(e) + Cause(e)
-func VerboseDefault() bool {
-	return verbose
-}
-
-// SetVerboseDefault sets the global default for verbose mode.
-// When true, e.Error() == Details(e)
-// When false, e.Error() == Message(e) + Cause(e)
-func SetVerboseDefault(b bool) {
-	verbose = b
-}
-
-// Error extends the standard golang `error` interface with functions
-// for attachment additional data to the error
-type Error interface {
-	error
-	Appendf(format string, args ...interface{}) Error
-	Append(msg string) Error
-	Prepend(msg string) Error
-	Prependf(format string, args ...interface{}) Error
-	WithMessage(msg string) Error
-	WithMessagef(format string, args ...interface{}) Error
-	WithUserMessage(msg string) Error
-	WithUserMessagef(format string, args ...interface{}) Error
-	WithValue(key, value interface{}) Error
-	Here() Error
-	WithStackSkipping(skip int) Error
-	WithHTTPCode(code int) Error
-	WithCause(err error) Error
-	Cause() error
-	fmt.Formatter
-}
 
 // New creates a new error, with a stack attached.  The equivalent of golang's errors.New()
 func New(msg string) Error {
@@ -115,7 +63,7 @@ func UserErrorf(format string, a ...interface{}) Error {
 // merry.Error, this is a no-op.
 // If e == nil, return nil
 func Wrap(e error) Error {
-	return WrapSkipping(e, 1)
+	return captureStack(e, 1, false)
 }
 
 // WrapSkipping turns the error arg into a merry.Error if the arg is not
@@ -124,18 +72,7 @@ func Wrap(e error) Error {
 // If a merry.Error is created by this call, the stack captured will skip
 // `skip` frames (0 is the call site of `WrapSkipping()`)
 func WrapSkipping(e error, skip int) Error {
-	switch e1 := e.(type) {
-	case nil:
-		return nil
-	case *merryErr:
-		return e1
-	default:
-		return &merryErr{
-			err:   e,
-			key:   stack,
-			value: captureStack(skip + 1),
-		}
-	}
+	return captureStack(e, skip+1, false)
 }
 
 // WithValue adds a context an error.  If the key was already set on e,
@@ -194,27 +131,19 @@ func Values(e error) map[interface{}]interface{} {
 // Useful when returning copies of exported package errors.
 // If e is nil, returns nil.
 func Here(e error) Error {
-	return HereSkipping(e, 1)
+	return captureStack(e, 1, true)
 }
 
 // HereSkipping returns an error with a new stacktrace, at the call site
 // of HereSkipping() - skip frames.
 func HereSkipping(e error, skip int) Error {
-	switch m := e.(type) {
-	case nil:
-		return nil
-	case *merryErr:
-		// optimization: only capture the stack once, since its expensive
-		return m.WithStackSkipping(1 + skip)
-	default:
-		return WrapSkipping(e, 1+skip)
-	}
+	return captureStack(e, skip+1, true)
 }
 
 // Stack returns the stack attached to an error, or nil if one is not attached
 // If e is nil, returns nil.
 func Stack(e error) []uintptr {
-	stack, _ := Value(e, stack).([]uintptr)
+	stack, _ := Value(e, errKeyStack).([]uintptr)
 	return stack
 }
 
@@ -234,7 +163,7 @@ func HTTPCode(e error) int {
 	if e == nil {
 		return 200
 	}
-	code, _ := Value(e, httpCode).(int)
+	code, _ := Value(e, errKeyHTTPCode).(int)
 	if code == 0 {
 		return 500
 	}
@@ -247,7 +176,7 @@ func UserMessage(e error) string {
 	if e == nil {
 		return ""
 	}
-	msg, _ := Value(e, userMessage).(string)
+	msg, _ := Value(e, errKeyUserMessage).(string)
 	return msg
 }
 
@@ -265,7 +194,7 @@ func Message(e error) string {
 	if e == nil {
 		return ""
 	}
-	m, _ := Value(e, message).(string)
+	m, _ := Value(e, errKeyMessage).(string)
 	if m == "" {
 		m = Unwrap(e).Error()
 	}
@@ -278,7 +207,7 @@ func Cause(e error) error {
 	if e == nil {
 		return nil
 	}
-	c, _ := Value(e, cause).(error)
+	c, _ := Value(e, errKeyCause).(error)
 	return c
 }
 
@@ -316,7 +245,7 @@ func WithMessage(e error, msg string) Error {
 	if e == nil {
 		return nil
 	}
-	return WrapSkipping(e, 1).WithValue(message, msg)
+	return WrapSkipping(e, 1).WithValue(errKeyMessage, msg)
 }
 
 // WithMessagef is the same as WithMessage(), using fmt.Sprintf().
@@ -436,184 +365,45 @@ func Unwrap(e error) error {
 	}
 }
 
-func captureStack(skip int) []uintptr {
-	if !captureStacks {
+// captureStack: return an error with a stack attached.  Stack will skip
+// specified frames.  skip = 0 will start at caller.
+// If the err already has a stack, to auto-stack-capture is disabled globally,
+// this is a no-op.  Use force to override and force a stack capture
+// in all cases.
+func captureStack(err error, skip int, force bool) Error {
+	if err == nil {
 		return nil
 	}
-	stack := make([]uintptr, MaxStackDepth)
-	length := runtime.Callers(2+skip, stack[:])
-	return stack[:length]
-}
-
-type errorProperty string
-
-const (
-	stack       errorProperty = "stack"
-	message                   = "message"
-	httpCode                  = "http status code"
-	userMessage               = "user message"
-	cause                     = "cause"
-)
-
-type merryErr struct {
-	err        error
-	key, value interface{}
-}
-
-// make sure merryErr implements Error
-var _ Error = (*merryErr)(nil)
-
-// Format implements fmt.Formatter
-func (e *merryErr) Format(s fmt.State, verb rune) {
-	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			io.WriteString(s, Details(e))
-			return
+	if !force && (!captureStacks || hasStack(err)) {
+		if merr, ok := err.(*merryErr); ok {
+			return merr
 		}
-		fallthrough
-	case 's':
-		io.WriteString(s, e.Error())
-	case 'q':
-		fmt.Fprintf(s, "%q", e.Error())
-	}
-}
-
-// Error implements golang's error interface
-// returns the message value if set, otherwise
-// delegates to inner error
-func (e *merryErr) Error() string {
-	if verbose {
-		return Details(e)
-	}
-	m := Message(e)
-	if m == "" {
-		m = UserMessage(e)
-	}
-	// add cause
-	if c := Cause(e); c != nil {
-		if ce := c.Error(); ce != "" {
-			m += ": " + ce
+		// wrap just to return the correct type.  We need to return a *merryErr
+		// to accommodate the chainable API
+		return &merryErr{
+			err: err,
 		}
 	}
-	return m
-}
 
-// return a new error with additional context
-func (e *merryErr) WithValue(key, value interface{}) Error {
-	if e == nil {
-		return nil
-	}
+	s := make([]uintptr, MaxStackDepth)
+	length := runtime.Callers(2+skip, s[:])
 	return &merryErr{
-		err:   e,
-		key:   key,
-		value: value,
+		err:   err,
+		key:   errKeyStack,
+		value: s[:length],
 	}
 }
 
-// Shorthand for capturing a new stack trace
-func (e *merryErr) Here() Error {
-	if e == nil {
-		return nil
+func hasStack(err error) bool {
+	for err != nil {
+		if e, ok := err.(*merryErr); ok {
+			if e.key == errKeyStack || e.key == errKeyFormattedStack {
+				return true
+			}
+			err = e.err
+			continue
+		}
+		err = errors.Unwrap(err)
 	}
-	return e.WithStackSkipping(1)
-}
-
-// return a new error with a new stack capture
-func (e *merryErr) WithStackSkipping(skip int) Error {
-	if e == nil {
-		return nil
-	}
-	return &merryErr{
-		err:   e,
-		key:   stack,
-		value: captureStack(skip + 1),
-	}
-}
-
-// return a new error with an http status code attached
-func (e *merryErr) WithHTTPCode(code int) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithValue(httpCode, code)
-}
-
-// return a new error with a new message
-func (e *merryErr) WithMessage(msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithValue(message, msg)
-}
-
-// return a new error with a new formatted message
-func (e *merryErr) WithMessagef(format string, a ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithMessage(fmt.Sprintf(format, a...))
-}
-
-// Add a message which is suitable for end users to see
-func (e *merryErr) WithUserMessage(msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithValue(userMessage, msg)
-}
-
-// Add a message which is suitable for end users to see
-func (e *merryErr) WithUserMessagef(format string, args ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithUserMessage(fmt.Sprintf(format, args...))
-}
-
-// Append a message after the current error message, in the format "original: new"
-func (e *merryErr) Append(msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithMessagef("%s: %s", Message(e), msg)
-}
-
-// Append a message after the current error message, in the format "original: new"
-func (e *merryErr) Appendf(format string, args ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return e.Append(fmt.Sprintf(format, args...))
-}
-
-// Prepend a message before the current error message, in the format "new: original"
-func (e *merryErr) Prepend(msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithMessagef("%s: %s", msg, Message(e))
-}
-
-// Prepend a message before the current error message, in the format "new: original"
-func (e *merryErr) Prependf(format string, args ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return e.Prepend(fmt.Sprintf(format, args...))
-}
-
-// WithCause returns an error based on the receiver, with the cause
-// set to the argument.
-func (e *merryErr) WithCause(err error) Error {
-	if e == nil || err == nil {
-		return e
-	}
-	return e.WithValue(cause, err)
-}
-
-// Cause returns the cause of the receiver, or nil if there is
-// no cause, or the receiver is nil
-func (e *merryErr) Cause() error {
-	return Cause(e)
+	return false
 }

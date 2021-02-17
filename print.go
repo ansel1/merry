@@ -11,8 +11,8 @@ import (
 )
 
 func init() {
-	RegisterDetail("User Message", userMessage)
-	RegisterDetail("HTTP Code", httpCode)
+	RegisterDetail("User Message", errKeyUserMessage)
+	RegisterDetail("HTTP Code", errKeyHTTPCode)
 }
 
 var detailsLock sync.Mutex
