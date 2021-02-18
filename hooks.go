@@ -4,7 +4,6 @@ package merry
 var MaxStackDepth = 50
 
 var captureStacks = true
-var verbose = false
 
 // StackCaptureEnabled returns whether stack capturing is enabled
 func StackCaptureEnabled() bool {
@@ -16,16 +15,16 @@ func SetStackCaptureEnabled(enabled bool) {
 	captureStacks = enabled
 }
 
-// VerboseDefault returns the global default for verbose mode.
-// When true, e.Error() == Details(e)
-// When false, e.Error() == Message(e) + Cause(e)
+// VerboseDefault no longer has any effect.
+// deprecated: see SetVerboseDefault
 func VerboseDefault() bool {
-	return verbose
+	return false
 }
 
-// SetVerboseDefault sets the global default for verbose mode.
-// When true, e.Error() == Details(e)
-// When false, e.Error() == Message(e) + Cause(e)
-func SetVerboseDefault(b bool) {
-	verbose = b
+// SetVerboseDefault used to control the behavior of the Error() function on errors
+// processed by this package.  Error() now always just returns the error's message.
+// This setting no longer has any effect.
+// deprecated: To print the details of an error, use Details(err), or format the
+// error with the verbose flag: fmt.Sprintf("%+v", err)
+func SetVerboseDefault(bool) {
 }

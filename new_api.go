@@ -34,6 +34,61 @@ func SetValue(key, value interface{}) Wrapper {
 	})
 }
 
+// SetMessage overrides the value returned by err.Error().
+func SetMessage(msg string) Wrapper {
+	return SetValue(errKeyMessage, msg)
+}
+
+// SetMessagef overrides the value returned by err.Error().
+func SetMessagef(format string, args ...interface{}) Wrapper {
+	return WrapperFunc(func(err error, _ int) error {
+		if err == nil {
+			return nil
+		}
+		return Set(err, errKeyMessage, fmt.Sprintf(format, args...))
+	})
+}
+
+// PrependMessage prepends the value returned by err.Error() with "msg: ".
+func PrependMessage(msg string) Wrapper {
+	return WrapperFunc(func(err error, _ int) error {
+		if err == nil || len(msg) == 0 {
+			return err
+		}
+		return Set(err, errKeyMessage, msg+": "+err.Error())
+	})
+}
+
+// PrependMessagef prepends the value returned by err.Error() with "formattedmsg: ".
+func PrependMessagef(format string, args ...interface{}) Wrapper {
+	return WrapperFunc(func(err error, _ int) error {
+		if err == nil || len(format) == 0 {
+			return err
+		}
+		return Set(err, errKeyMessage, fmt.Sprintf(format, args...)+": "+err.Error())
+	})
+}
+
+// AppendMessage appends ": msg" to the value returned by err.Error().
+func AppendMessage(msg string) Wrapper {
+	return WrapperFunc(func(err error, _ int) error {
+		if err == nil || len(msg) == 0 {
+			return err
+		}
+		return Set(err, errKeyMessage, err.Error()+": "+msg)
+	})
+}
+
+// AppendMessagef appends ": formattedmsg" to the value returned by err.Error().
+func AppendMessagef(format string, args ...interface{}) Wrapper {
+	return WrapperFunc(func(err error, _ int) error {
+		if err == nil || len(format) == 0 {
+			return err
+		}
+		return Set(err, errKeyMessage, err.Error()+": "+fmt.Sprintf(format, args...))
+	})
+}
+
 // SetUserMessage associates an end-user message with an error.
 func SetUserMessage(msg string) Wrapper {
 	return SetValue(errKeyUserMessage, msg)
@@ -41,7 +96,12 @@ func SetUserMessage(msg string) Wrapper {
 
 // SetUserMessagef associates a formatted end-user message with an error.
 func SetUserMessagef(format string, args ...interface{}) Wrapper {
-	return SetValue(errKeyUserMessage, fmt.Sprintf(format, args...))
+	return WrapperFunc(func(err error, _ int) error {
+		if err == nil {
+			return nil
+		}
+		return Set(err, errKeyUserMessage, fmt.Sprintf(format, args...))
+	})
 }
 
 // SetHTTPCode associates an HTTP status code with an error.
@@ -86,6 +146,13 @@ func CaptureStack() Wrapper {
 	return WrapperFunc(func(err error, callerDepth int) error {
 		return captureStack(err, callerDepth+1, StackCaptureEnabled())
 	})
+}
+
+// SetCause sets one error as the cause of another error.  This is useful for associating errors
+// from lower API levels with sentinel errors in higher API levels.  errors.Is() and errors.As()
+// will traverse both the main chain of error wrappers, as well as down the chain of causes.
+func SetCause(err error) Wrapper {
+	return SetValue(errKeyCause, err)
 }
 
 // Set wraps an error with a key/value pair.  This is the simplest form of associating

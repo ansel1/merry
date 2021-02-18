@@ -1,6 +1,8 @@
 package merry
 
 import (
+	"errors"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -80,6 +82,34 @@ func TestErrImpl_As(t *testing.T) {
 
 	assert.True(t, as(w, &rerr))
 	assert.Equal(t, &rr, rerr)
+}
+
+func TestErrImpl_Error(t *testing.T) {
+	err := errors.New("red")
+
+	assert.Equal(t, "red", err.Error())
+
+	err = Prepend(err, "blue")
+
+	assert.Equal(t, "blue: red", err.Error())
+}
+
+func TestErrImpl_Format(t *testing.T) {
+	e := New("Hi")
+	assert.Equal(t, fmt.Sprintf("%v", e), e.Error())
+	assert.Equal(t, fmt.Sprintf("%s", e), e.Error())
+	assert.Equal(t, fmt.Sprintf("%q", e), fmt.Sprintf("%q", e.Error()))
+
+	// %v and %s also print the cause, if there is one
+	e = WithCause(e, New("Bye"))
+	assert.Equal(t, fmt.Sprintf("%v", e), e.Error()+": Bye")
+	assert.Equal(t, fmt.Sprintf("%s", e), e.Error()+": Bye")
+
+	// %+v should return full details, including properties registered with RegisterXXX() functions
+	// and the stack.
+	e = WithUserMessage(e, "blue")
+	e = Wrap(e, SetUserMessage("blue"))
+	assert.Equal(t, fmt.Sprintf("%+v", e), Details(e))
 }
 
 func BenchmarkIs(b *testing.B) {

@@ -344,7 +344,7 @@ func TestWithMessagef(t *testing.T) {
 	assert.EqualError(t, err3, "blue red")
 	assert.Equal(t, Stack(err1), Stack(err2), "stack should not have been altered")
 	// nil -> nil
-	assert.Nil(t, WithMessagef(nil, "", ""))
+	assert.Nil(t, WithMessagef(nil, "%s", ""))
 }
 
 func TestMessage(t *testing.T) {
@@ -358,13 +358,6 @@ func TestMessage(t *testing.T) {
 		assert.Equal(t, "one", Message(test))
 	}
 
-	// when verbose is on, Error() changes, but Message() doesn't
-	defer SetVerboseDefault(false)
-	SetVerboseDefault(true)
-	e := New("two")
-	assert.Equal(t, "two", Message(e))
-	assert.NotEqual(t, "two", e.Error())
-
 	// when error is nil, return ""
 	assert.Empty(t, Message(nil))
 
@@ -377,10 +370,6 @@ func TestWithUserMessage(t *testing.T) {
 	assert.Equal(t, "a glitch", UserMessage(e))
 	e = WithUserMessagef(e, "not a %s deal", "huge")
 	assert.Equal(t, "not a huge deal", UserMessage(e))
-	// If user message is set and regular message isn't, set regular message to user message
-	e = New("").WithUserMessage("a blag")
-	assert.Equal(t, "a blag", UserMessage(e))
-	assert.Equal(t, "a blag", e.Error())
 }
 
 func TestAppend(t *testing.T) {
@@ -396,7 +385,7 @@ func TestAppend(t *testing.T) {
 
 	// nil -> nil
 	assert.Nil(t, Append(nil, ""))
-	assert.Nil(t, Appendf(nil, "", ""))
+	assert.Nil(t, Appendf(nil, "%s", ""))
 }
 
 func TestPrepend(t *testing.T) {
@@ -412,7 +401,7 @@ func TestPrepend(t *testing.T) {
 
 	// nil -> nil
 	assert.Nil(t, Prepend(nil, ""))
-	assert.Nil(t, Prependf(nil, "", ""))
+	assert.Nil(t, Prependf(nil, "%s", ""))
 }
 
 func TestLocation(t *testing.T) {
@@ -497,67 +486,6 @@ func TestStackCaptureEnabled(t *testing.T) {
 	assert.NotEmpty(t, Stack(e))
 }
 
-func TestVerboseDefault(t *testing.T) {
-	defer SetVerboseDefault(false)
-	// off by default
-	assert.False(t, VerboseDefault())
-
-	SetVerboseDefault(true)
-	assert.True(t, VerboseDefault())
-	e := New("yikes")
-	// test verbose on
-	assert.Equal(t, Details(e), e.Error())
-	// test verbose off
-	SetVerboseDefault(false)
-	s := e.Error()
-	assert.Equal(t, Message(e), s)
-	assert.Equal(t, "yikes", s)
-}
-
-func TestMerryErr_Error(t *testing.T) {
-	origVerbose := verbose
-	defer func() {
-		verbose = origVerbose
-	}()
-
-	// test with verbose on
-	verbose = false
-
-	tests := []struct {
-		desc                 string
-		verbose              bool
-		message, userMessage string
-		expected             string
-	}{
-		{
-			desc:     "with message",
-			message:  "blue",
-			expected: "blue",
-		},
-		{
-			desc:        "with user message",
-			userMessage: "red",
-			expected:    "red",
-		},
-	}
-	for _, test := range tests {
-		t.Log("error message tests: " + test.desc)
-		verbose = test.verbose
-		err := New(test.message).WithUserMessage(test.userMessage)
-		t.Log(err.Error())
-		assert.Equal(t, test.expected, err.Error())
-	}
-
-}
-
-func TestMerryErr_Format(t *testing.T) {
-	e := New("Hi")
-	assert.Equal(t, fmt.Sprintf("%v", e), e.Error())
-	assert.Equal(t, fmt.Sprintf("%s", e), e.Error())
-	assert.Equal(t, fmt.Sprintf("%q", e), fmt.Sprintf("%q", e.Error()))
-	assert.Equal(t, fmt.Sprintf("%+v", e), Details(e))
-}
-
 func TestCause(t *testing.T) {
 
 	e1 := New("low level error")
@@ -578,7 +506,7 @@ func TestCause(t *testing.T) {
 	assert.Nil(t, e1.(Error).Cause())
 	assert.Nil(t, e2.(Error).Cause())
 
-	assert.Equal(t, e3.Error(), e2.Error()+": "+e1.Error())
+	assert.Equal(t, fmt.Sprintf("%v", e3), e2.Error()+": "+e1.Error())
 
 	assert.True(t, Is(e5, e4))
 	assert.True(t, Is(e5, e3))
@@ -590,7 +518,7 @@ func TestCause(t *testing.T) {
 	assert.Equal(t, e1, RootCause(e5))
 
 	// ensure cause message isn't double appended
-	assert.Equal(t, "red: high level error: low level error", Prepend(e3, "red").Error())
+	assert.Equal(t, "red: high level error: low level error", fmt.Sprintf("%v", Prepend(e3, "red")))
 }
 
 func BenchmarkNew_withStackCapture(b *testing.B) {

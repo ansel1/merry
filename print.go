@@ -108,11 +108,12 @@ func Details(e error) string {
 	if e == nil {
 		return ""
 	}
-	msg := Message(e)
+
+	msg := e.Error()
+	var dets []string
 
 	detailsLock.Lock()
 
-	var dets []string
 	for label, key := range detailFields {
 		v := Value(e, key)
 		if v != nil {
@@ -121,16 +122,13 @@ func Details(e error) string {
 	}
 
 	detailsLock.Unlock()
+
 	if len(dets) > 0 {
 		// sort so output is predictable
 		sort.Strings(dets)
 		msg += "\n" + strings.Join(dets, "\n")
 	}
 
-	//userMsg := UserMessage(e)
-	//if userMsg != "" {
-	//	msg = fmt.Sprintf("%s\n\nUser Message: %s", msg, userMsg)
-	//}
 	s := Stacktrace(e)
 	if s != "" {
 		msg += "\n\n" + s
@@ -139,5 +137,6 @@ func Details(e error) string {
 	if c := Cause(e); c != nil {
 		msg += "\n\nCaused By: " + Details(c)
 	}
+
 	return msg
 }

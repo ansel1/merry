@@ -3,6 +3,7 @@ package merry
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 type errKey int
@@ -36,8 +37,9 @@ func (e errKey) String() string {
 		return "formatted stack"
 	case errKeyForceCapture:
 		return "force stack capture"
+	default:
+		return ""
 	}
-	return ""
 }
 
 type errImpl struct {
@@ -55,38 +57,52 @@ func (e *errImpl) Format(s fmt.State, verb rune) {
 		}
 		fallthrough
 	case 's':
-		io.WriteString(s, e.Error())
+		io.WriteString(s, msgWithCauses(e))
 	case 'q':
 		fmt.Fprintf(s, "%q", e.Error())
 	}
+}
+
+func msgWithCauses(err error) string {
+	var sb strings.Builder
+
+	for err != nil {
+		if ce := err.Error(); ce != "" {
+			if sb.Len() > 0 {
+				sb.WriteString(": ")
+			}
+			sb.WriteString(ce)
+		}
+		err = Cause(err)
+	}
+
+	return sb.String()
 }
 
 // Error implements golang's error interface
 // returns the message value if set, otherwise
 // delegates to inner error
 func (e *errImpl) Error() string {
-	if verbose {
-		return Details(e)
-	}
-
-	m := Message(e)
-	if m == "" {
-		m = UserMessage(e)
-	}
-	// add cause
-	if c := Cause(e); c != nil {
-		if ce := c.Error(); ce != "" {
-			m += ": " + ce
+	if e.key == errKeyMessage {
+		if s, ok := e.value.(string); ok {
+			return s
 		}
 	}
-
-	return m
+	return e.err.Error()
 }
 
 // Cause returns the cause of the receiver, or nil if there is
 // no cause, or the receiver is nil
 func (e *errImpl) Cause() error {
-	return Cause(e)
+	v, ok, err := e.iterativeValueSearch(errKeyCause)
+	if ok {
+		if c, ok := v.(error); ok {
+			return c
+		}
+	}
+
+	// fallback on recursion.  Try to unwrap to a causer.
+	return Cause(err)
 }
 
 // Value returns the value associated with the specified key.  It will search

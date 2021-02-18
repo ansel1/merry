@@ -154,10 +154,12 @@ func HTTPCode(e error) int {
 	if e == nil {
 		return 200
 	}
+
 	code, _ := Value(e, errKeyHTTPCode).(int)
 	if code == 0 {
 		return 500
 	}
+
 	return code
 }
 
@@ -168,131 +170,79 @@ func UserMessage(e error) string {
 	return msg
 }
 
-// Message returns just the error message.  It is equivalent to
-// Error() when Verbose is false.
-// The behavior of Error() is (pseudo-code):
-//
-//     if verbose
-//       Details(e)
-//     else
-//       Message(e) || UserMessage(e)
-//
-// If e is nil, returns "".
-func Message(e error) string {
-	if e == nil {
-		return ""
-	}
-	m, _ := Value(e, errKeyMessage).(string)
-	if m == "" {
-		m = Unwrap(e).Error()
-	}
-	return m
-}
-
 // Cause returns the cause of the argument.  If e is nil, or has no cause,
 // nil is returned.
 func Cause(e error) error {
-	if e == nil {
-		return nil
+	var causer interface{ Cause() error }
+	if as(e, &causer) {
+		return causer.Cause()
 	}
-	c, _ := Value(e, errKeyCause).(error)
-	return c
+
+	return nil
 }
 
 // RootCause returns the innermost cause of the argument (i.e. the last
 // error in the cause chain)
-func RootCause(e error) error {
-	if e == nil {
-		return e
-	}
+func RootCause(err error) error {
 	for {
-		c := Cause(e)
-		if c == nil {
-			break
-		} else {
-			e = c
+		cause := Cause(err)
+		if cause == nil {
+			return err
 		}
+		err = cause
 	}
-	return e
 }
 
 // WithCause returns an error based on the first argument, with the cause
 // set to the second argument.  If e is nil, returns nil.
-func WithCause(e error, cause error) Error {
-	if e == nil {
-		return nil
-	}
-	return WrapSkipping(e, 1).WithCause(cause)
+func WithCause(err error, cause error) Error {
+	return WrapSkipping(err, 1, SetCause(cause))
 }
 
 // WithMessage returns an error with a new message.
 // The resulting error's Error() method will return
 // the new message.
 // If e is nil, returns nil.
-func WithMessage(e error, msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return WrapSkipping(e, 1).WithValue(errKeyMessage, msg)
+func WithMessage(err error, msg string) Error {
+	return WrapSkipping(err, 1, SetMessage(msg))
 }
 
 // WithMessagef is the same as WithMessage(), using fmt.Sprintf().
-func WithMessagef(e error, format string, a ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return WrapSkipping(e, 1).WithMessagef(format, a...)
+func WithMessagef(err error, format string, args ...interface{}) Error {
+	return WrapSkipping(err, 1, SetMessagef(format, args...))
 }
 
 // WithUserMessage adds a message which is suitable for end users to see.
 // If e is nil, returns nil.
-func WithUserMessage(e error, msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return WrapSkipping(e, 1).WithUserMessage(msg)
+func WithUserMessage(err error, msg string) Error {
+	return WrapSkipping(err, 1, SetUserMessage(msg))
 }
 
 // WithUserMessagef is the same as WithMessage(), using fmt.Sprintf()
-func WithUserMessagef(e error, format string, args ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return WrapSkipping(e, 1).WithUserMessagef(format, args...)
+func WithUserMessagef(err error, format string, args ...interface{}) Error {
+	return WrapSkipping(err, 1, SetUserMessagef(format, args...))
 }
 
 // Append a message after the current error message, in the format "original: new".
 // If e == nil, return nil.
-func Append(e error, msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return WrapSkipping(e, 1).Append(msg)
+func Append(err error, msg string) Error {
+	return WrapSkipping(err, 1, AppendMessage(msg))
 }
 
 // Appendf is the same as Append, but uses fmt.Sprintf().
-func Appendf(e error, format string, args ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return WrapSkipping(e, 1).Appendf(format, args...)
+func Appendf(err error, format string, args ...interface{}) Error {
+	return WrapSkipping(err, 1, AppendMessagef(format, args...))
 }
 
 // Prepend a message before the current error message, in the format "new: original".
 // If e == nil, return nil.
-func Prepend(e error, msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return WrapSkipping(e, 1).Prepend(msg)
+func Prepend(err error, msg string) Error {
+	return WrapSkipping(err, 1, PrependMessage(msg))
 }
 
 // Prependf is the same as Prepend, but uses fmt.Sprintf()
-func Prependf(e error, format string, args ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return WrapSkipping(e, 1).Prependf(format, args...)
+func Prependf(err error, format string, args ...interface{}) Error {
+	return WrapSkipping(err, 1, PrependMessagef(format, args...))
 }
 
 // Is is equivalent to errors.Is, but tests against multiple targets.
