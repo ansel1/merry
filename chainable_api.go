@@ -1,6 +1,10 @@
 package merry
 
-import "fmt"
+import (
+	"fmt"
+	v2 "github.com/ansel1/merry/v2"
+	"io"
+)
 
 // Error extends the standard golang `error` interface with functions
 // for attachment additional data to the error
@@ -26,105 +30,123 @@ type Error interface {
 // make sure errImpl implements Error
 var _ Error = (*errImpl)(nil)
 
-// return a new error with additional context
+// WithValue is equivalent to WithValue(e, key, value).
 func (e *errImpl) WithValue(key, value interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return &errImpl{
-		err:   e,
-		key:   key,
-		value: value,
-	}
+	return WrapSkipping(e, 1, v2.WithValue(key, value))
 }
 
-// Shorthand for capturing a new stack trace
+// Here is equivalent to Here(e).
 func (e *errImpl) Here() Error {
 	return HereSkipping(e, 1)
 }
 
-// return a new error with a new stack capture
+// WithStackSkipping is equivalent to HereSkipping(e, i).
 func (e *errImpl) WithStackSkipping(skip int) Error {
 	return HereSkipping(e, skip+1)
 }
 
-// return a new error with an http status code attached
+// WithHTTPCode is equivalent to WithHTTPCode(e, code).
 func (e *errImpl) WithHTTPCode(code int) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithValue(errKeyHTTPCode, code)
+	return WrapSkipping(e, 1, v2.WithHTTPCode(code))
 }
 
-// return a new error with a new message
+// WithMessage is equivalent to WithMessage(e, msg).
 func (e *errImpl) WithMessage(msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithValue(errKeyMessage, msg)
+	return WrapSkipping(e, 1, v2.WithMessage(msg))
 }
 
-// return a new error with a new formatted message
-func (e *errImpl) WithMessagef(format string, a ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithMessage(fmt.Sprintf(format, a...))
+// WithMessagef is equivalent to WithMessagef(e, format, args...).
+func (e *errImpl) WithMessagef(format string, args ...interface{}) Error {
+	return WrapSkipping(e, 1, v2.WithMessagef(format, args...))
 }
 
-// Add a message which is suitable for end users to see
+// WithUserMessage is equivalent to WithUserMessage(e, msg).
 func (e *errImpl) WithUserMessage(msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithValue(errKeyUserMessage, msg)
+	return WrapSkipping(e, 1, v2.WithUserMessage(msg))
 }
 
-// Add a message which is suitable for end users to see
+// WithUserMessagef is equivalent to WithUserMessagef(e, format, args...).
 func (e *errImpl) WithUserMessagef(format string, args ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithUserMessage(fmt.Sprintf(format, args...))
+	return WrapSkipping(e, 1, v2.WithUserMessagef(format, args...))
 }
 
-// Append a message after the current error message, in the format "original: new"
+// Append is equivalent to Append(err, msg).
 func (e *errImpl) Append(msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithMessagef("%s: %s", Message(e), msg)
+	return WrapSkipping(e, 1, v2.Append(msg))
 }
 
-// Append a message after the current error message, in the format "original: new"
+// Appendf is equivalent to Appendf(err, format, msg).
 func (e *errImpl) Appendf(format string, args ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return e.Append(fmt.Sprintf(format, args...))
+	return WrapSkipping(e, 1, v2.Appendf(format, args...))
 }
 
-// Prepend a message before the current error message, in the format "new: original"
+// Prepend is equivalent to Prepend(err, msg).
 func (e *errImpl) Prepend(msg string) Error {
-	if e == nil {
-		return nil
-	}
-	return e.WithMessagef("%s: %s", msg, Message(e))
+	return WrapSkipping(e, 1, v2.Prepend(msg))
 }
 
-// Prepend a message before the current error message, in the format "new: original"
+// Prependf is equivalent to Prependf(err, format, args...).
 func (e *errImpl) Prependf(format string, args ...interface{}) Error {
-	if e == nil {
-		return nil
-	}
-	return e.Prepend(fmt.Sprintf(format, args...))
+	return WrapSkipping(e, 1, v2.Prependf(format, args...))
 }
 
-// WithCause returns an error based on the receiver, with the cause
-// set to the argument.
+// WithCause is equivalent to WithCause(e, err).
 func (e *errImpl) WithCause(err error) Error {
-	if e == nil || err == nil {
+	return WrapSkipping(e, 1, v2.WithCause(err))
+}
+
+// errImpl coerces an error to an Error
+type errImpl struct {
+	err error
+}
+
+func coerce(err error) Error {
+	if err == nil {
+		return nil
+	}
+
+	if e, ok := err.(Error); ok {
 		return e
 	}
-	return e.WithValue(errKeyCause, err)
+
+	return &errImpl{err}
+}
+
+// Format implements fmt.Formatter.
+func (e *errImpl) Format(s fmt.State, verb rune) {
+	// the inner err should always be an err produced
+	// by v2
+	if f, ok := e.err.(fmt.Formatter); ok {
+		f.Format(s, verb)
+		return
+	}
+
+	// should never happen, but fall back on something
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			_, _ = io.WriteString(s, Details(e))
+			return
+		}
+		fallthrough
+	case 's':
+		_, _ = io.WriteString(s, e.Error())
+	case 'q':
+		_, _ = fmt.Fprintf(s, "%q", e.Error())
+	}
+}
+
+// Error implements the error interface.
+func (e *errImpl) Error() string {
+	return e.err.Error()
+}
+
+// Unwrap returns the next wrapped error.
+func (e *errImpl) Unwrap() error {
+	return e.err
+}
+
+// Cause implements Error.
+func (e *errImpl) Cause() error {
+	return Cause(e.err)
 }

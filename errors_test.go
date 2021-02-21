@@ -375,13 +375,13 @@ func TestWithUserMessage(t *testing.T) {
 func TestAppend(t *testing.T) {
 	blug := New("blug")
 	err := blug.Append("blog")
-	assert.Equal(t, err.Error(), "blug: blog")
+	assert.Equal(t, "blug: blog", err.Error())
 	err = Append(err, "blig")
-	assert.Equal(t, err.Error(), "blug: blog: blig")
+	assert.Equal(t, "blug: blog: blig", err.Error())
 	err = blug.Appendf("%s", "blog")
-	assert.Equal(t, err.Error(), "blug: blog")
+	assert.Equal(t, "blug: blog", err.Error())
 	err = Appendf(err, "%s", "blig")
-	assert.Equal(t, err.Error(), "blug: blog: blig")
+	assert.Equal(t, "blug: blog: blig", err.Error())
 
 	// nil -> nil
 	assert.Nil(t, Append(nil, ""))
@@ -452,7 +452,6 @@ func TestValues(t *testing.T) {
 	assert.NotNil(t, values)
 	assert.Equal(t, values["key1"], "val1")
 	assert.Equal(t, values["key2"], "val2")
-	assert.NotNil(t, values[errKeyStack])
 
 	// make sure the last value attached is returned
 	e = WithValue(e, "key3", "val3")

@@ -35,8 +35,46 @@ package merry
 import (
 	"errors"
 	"fmt"
-	"runtime"
+	v2 "github.com/ansel1/merry/v2"
 )
+
+// MaxStackDepth is no longer used.  It remains here for backward compatibility.
+// deprecated: See Set/GetMaxStackDepth.
+var MaxStackDepth = 50
+
+// StackCaptureEnabled returns whether stack capturing is enabled
+func StackCaptureEnabled() bool {
+	return v2.StackCaptureEnabled()
+}
+
+// SetStackCaptureEnabled sets stack capturing globally.  Disabling stack capture can increase performance
+func SetStackCaptureEnabled(enabled bool) {
+	v2.SetStackCaptureEnabled(enabled)
+}
+
+// VerboseDefault no longer has any effect.
+// deprecated: see SetVerboseDefault
+func VerboseDefault() bool {
+	return false
+}
+
+// SetVerboseDefault used to control the behavior of the Error() function on errors
+// processed by this package.  Error() now always just returns the error's message.
+// This setting no longer has any effect.
+// deprecated: To print the details of an error, use Details(err), or format the
+// error with the verbose flag: fmt.Sprintf("%+v", err)
+func SetVerboseDefault(bool) {
+}
+
+// GetMaxStackDepth returns the number of frames captured in stacks.
+func GetMaxStackDepth() int {
+	return v2.MaxStackDepth()
+}
+
+// SetMaxStackDepth sets the MaxStackDepth.
+func SetMaxStackDepth(depth int) {
+	v2.SetMaxStackDepth(depth)
+}
 
 // New creates a new error, with a stack attached.  The equivalent of golang's errors.New()
 func New(msg string) Error {
@@ -51,20 +89,20 @@ func Errorf(format string, a ...interface{}) Error {
 // UserError creates a new error with a message intended for display to an
 // end user.
 func UserError(msg string) Error {
-	return WrapSkipping(errors.New(msg), 1, SetUserMessage(msg))
+	return WrapSkipping(errors.New(msg), 1, v2.WithUserMessage(msg))
 }
 
 // UserErrorf is like UserError, but uses fmt.Sprintf()
 func UserErrorf(format string, args ...interface{}) Error {
 	msg := fmt.Sprintf(format, args...)
-	return WrapSkipping(errors.New(msg), 1, SetUserMessage(msg))
+	return WrapSkipping(errors.New(msg), 1, v2.WithUserMessagef(msg))
 }
 
 // Wrap turns the argument into a merry.Error.  If the argument already is a
 // merry.Error, this is a no-op.
 // If e == nil, return nil
-func Wrap(err error, wrappers ...Wrapper) Error {
-	return WrapSkipping(err, 1, wrappers...)
+func Wrap(err error, wrappers ...v2.Wrapper) Error {
+	return coerce(v2.WrapSkipping(err, 1, wrappers...))
 }
 
 // WrapSkipping turns the error arg into a merry.Error if the arg is not
@@ -72,131 +110,94 @@ func Wrap(err error, wrappers ...Wrapper) Error {
 // If e is nil, return nil.
 // If a merry.Error is created by this call, the stack captured will skip
 // `skip` frames (0 is the call site of `WrapSkipping()`)
-func WrapSkipping(err error, skip int, wrappers ...Wrapper) Error {
-	for _, w := range wrappers {
-		err = w.Wrap(err, skip+1)
-	}
-	return captureStack(err, skip+1, false)
+func WrapSkipping(err error, skip int, wrappers ...v2.Wrapper) Error {
+	return coerce(v2.WrapSkipping(err, skip+1, wrappers...))
 }
 
 // WithValue adds a context an error.  If the key was already set on e,
 // the new value will take precedence.
 // If e is nil, returns nil.
 func WithValue(err error, key, value interface{}) Error {
-	return WrapSkipping(err, 1, SetValue(key, value))
+	return WrapSkipping(err, 1, v2.WithValue(key, value))
 }
 
 // Value returns the value for key, or nil if not set.
 // If e is nil, returns nil.
 func Value(err error, key interface{}) interface{} {
-	var valuer interface{ Value(interface{}) interface{} }
-	if as(err, &valuer) {
-		return valuer.Value(key)
-	}
-
-	return nil
+	return v2.Value(err, key)
 }
 
 // Values returns a map of all values attached to the error
 // If a key has been attached multiple times, the map will
 // contain the last value mapped
 // If e is nil, returns nil.
-func Values(e error) map[interface{}]interface{} {
-	if e == nil {
-		return nil
-	}
-	var values map[interface{}]interface{}
-	for {
-		w, ok := e.(*errImpl)
-		if !ok {
-			return values
-		}
-		if values == nil {
-			values = make(map[interface{}]interface{}, 1)
-		}
-		if _, ok := values[w.key]; !ok {
-			values[w.key] = w.value
-		}
-		e = w.err
-	}
+func Values(err error) map[interface{}]interface{} {
+	return v2.Values(err)
 }
 
 // Here returns an error with a new stacktrace, at the call site of Here().
 // Useful when returning copies of exported package errors.
 // If e is nil, returns nil.
 func Here(err error) Error {
-	return captureStack(err, 1, StackCaptureEnabled())
+	return WrapSkipping(err, 1, v2.CaptureStack(false))
 }
 
 // HereSkipping returns an error with a new stacktrace, at the call site
 // of HereSkipping() - skip frames.
 func HereSkipping(err error, skip int) Error {
-	return captureStack(err, skip+1, StackCaptureEnabled())
+	return WrapSkipping(err, skip+1, v2.CaptureStack(false))
+}
+
+// Message returns just returns err.Error().  It is here for
+// historical reasons.
+func Message(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
 }
 
 // Stack returns the stack attached to an error, or nil if one is not attached
 // If e is nil, returns nil.
-func Stack(e error) []uintptr {
-	stack, _ := Value(e, errKeyStack).([]uintptr)
-	return stack
+func Stack(err error) []uintptr {
+	return v2.Stack(err)
 }
 
 // WithHTTPCode returns an error with an http code attached.
 // If e is nil, returns nil.
 func WithHTTPCode(e error, code int) Error {
-	return WrapSkipping(e, 1, SetHTTPCode(code))
+	return WrapSkipping(e, 1, v2.WithHTTPCode(code))
 }
 
 // HTTPCode converts an error to an http status code.  All errors
 // map to 500, unless the error has an http code attached.
 // If e is nil, returns 200.
-func HTTPCode(e error) int {
-	if e == nil {
-		return 200
-	}
-
-	code, _ := Value(e, errKeyHTTPCode).(int)
-	if code == 0 {
-		return 500
-	}
-
-	return code
+func HTTPCode(err error) int {
+	return v2.HTTPCode(err)
 }
 
 // UserMessage returns the end-user safe message.  Returns empty if not set.
 // If e is nil, returns "".
-func UserMessage(e error) string {
-	msg, _ := Value(e, errKeyUserMessage).(string)
-	return msg
+func UserMessage(err error) string {
+	return v2.UserMessage(err)
 }
 
 // Cause returns the cause of the argument.  If e is nil, or has no cause,
 // nil is returned.
-func Cause(e error) error {
-	var causer interface{ Cause() error }
-	if as(e, &causer) {
-		return causer.Cause()
-	}
-
-	return nil
+func Cause(err error) error {
+	return v2.Cause(err)
 }
 
 // RootCause returns the innermost cause of the argument (i.e. the last
 // error in the cause chain)
 func RootCause(err error) error {
-	for {
-		cause := Cause(err)
-		if cause == nil {
-			return err
-		}
-		err = cause
-	}
+	return v2.RootCause(err)
 }
 
 // WithCause returns an error based on the first argument, with the cause
 // set to the second argument.  If e is nil, returns nil.
 func WithCause(err error, cause error) Error {
-	return WrapSkipping(err, 1, SetCause(cause))
+	return WrapSkipping(err, 1, v2.WithCause(cause))
 }
 
 // WithMessage returns an error with a new message.
@@ -204,45 +205,45 @@ func WithCause(err error, cause error) Error {
 // the new message.
 // If e is nil, returns nil.
 func WithMessage(err error, msg string) Error {
-	return WrapSkipping(err, 1, SetMessage(msg))
+	return WrapSkipping(err, 1, v2.WithMessage(msg))
 }
 
 // WithMessagef is the same as WithMessage(), using fmt.Sprintf().
 func WithMessagef(err error, format string, args ...interface{}) Error {
-	return WrapSkipping(err, 1, SetMessagef(format, args...))
+	return WrapSkipping(err, 1, v2.WithMessagef(format, args...))
 }
 
 // WithUserMessage adds a message which is suitable for end users to see.
 // If e is nil, returns nil.
 func WithUserMessage(err error, msg string) Error {
-	return WrapSkipping(err, 1, SetUserMessage(msg))
+	return WrapSkipping(err, 1, v2.WithUserMessage(msg))
 }
 
 // WithUserMessagef is the same as WithMessage(), using fmt.Sprintf()
 func WithUserMessagef(err error, format string, args ...interface{}) Error {
-	return WrapSkipping(err, 1, SetUserMessagef(format, args...))
+	return WrapSkipping(err, 1, v2.WithUserMessagef(format, args...))
 }
 
 // Append a message after the current error message, in the format "original: new".
 // If e == nil, return nil.
 func Append(err error, msg string) Error {
-	return WrapSkipping(err, 1, AppendMessage(msg))
+	return WrapSkipping(err, 1, v2.Append(msg))
 }
 
 // Appendf is the same as Append, but uses fmt.Sprintf().
 func Appendf(err error, format string, args ...interface{}) Error {
-	return WrapSkipping(err, 1, AppendMessagef(format, args...))
+	return WrapSkipping(err, 1, v2.Appendf(format, args...))
 }
 
 // Prepend a message before the current error message, in the format "new: original".
 // If e == nil, return nil.
 func Prepend(err error, msg string) Error {
-	return WrapSkipping(err, 1, PrependMessage(msg))
+	return WrapSkipping(err, 1, v2.Prepend(msg))
 }
 
 // Prependf is the same as Prepend, but uses fmt.Sprintf()
 func Prependf(err error, format string, args ...interface{}) Error {
-	return WrapSkipping(err, 1, PrependMessagef(format, args...))
+	return WrapSkipping(err, 1, v2.Prependf(format, args...))
 }
 
 // Is is equivalent to errors.Is, but tests against multiple targets.
@@ -258,62 +259,16 @@ func Is(e error, originals ...error) bool {
 }
 
 // Unwrap returns the innermost underlying error.
-// Only useful in advanced cases, like if you need to
-// cast the underlying error to some type to get
-// additional information from it.
-// If e == nil, return nil.
+// This just calls errors.Unwrap() until if finds the deepest error.
+// It isn't very useful, and only remains for historical purposes
+//
+// deprecated: use errors.Is() or errors.As() instead.
 func Unwrap(e error) error {
-	if e == nil {
-		return nil
-	}
 	for {
-		w, ok := e.(*errImpl)
-		if !ok {
+		next := errors.Unwrap(e)
+		if next == nil {
 			return e
 		}
-		e = w.err
+		e = next
 	}
-}
-
-// captureStack: return an error with a stack attached.  Stack will skip
-// specified frames.  skip = 0 will start at caller.
-// If the err already has a stack, to auto-stack-capture is disabled globally,
-// this is a no-op.  Use force to override and force a stack capture
-// in all cases.
-func captureStack(err error, skip int, force bool) Error {
-	if err == nil {
-		return nil
-	}
-	if !force && (!captureStacks || hasStack(err)) {
-		if merr, ok := err.(*errImpl); ok {
-			return merr
-		}
-		// wrap just to return the correct type.  We need to return a Error
-		// to accommodate the chainable API
-		return &errImpl{
-			err: err,
-		}
-	}
-
-	s := make([]uintptr, MaxStackDepth)
-	length := runtime.Callers(2+skip, s[:])
-	return &errImpl{
-		err:   err,
-		key:   errKeyStack,
-		value: s[:length],
-	}
-}
-
-func hasStack(err error) bool {
-	for err != nil {
-		if e, ok := err.(*errImpl); ok {
-			if e.key == errKeyStack || e.key == errKeyFormattedStack {
-				return true
-			}
-			err = e.err
-			continue
-		}
-		err = errors.Unwrap(err)
-	}
-	return false
 }
