@@ -76,14 +76,30 @@ func SetMaxStackDepth(depth int) {
 	v2.SetMaxStackDepth(depth)
 }
 
-// New creates a new error, with a stack attached.  The equivalent of golang's errors.New()
-func New(msg string) Error {
-	return WrapSkipping(errors.New(msg), 1)
+// New creates a new error, with a stack attached.  The equivalent of golang's errors.New().
+// Accepts v2 wrappers to apply to the error.
+func New(msg string, wrappers ...v2.Wrapper) Error {
+	return WrapSkipping(errors.New(msg), 1, wrappers...)
 }
 
-// Errorf creates a new error with a formatted message and a stack.  The equivalent of golang's fmt.Errorf()
-func Errorf(format string, a ...interface{}) Error {
-	return WrapSkipping(fmt.Errorf(format, a...), 1)
+// Errorf creates a new error with a formatted message and a stack.  The equivalent of golang's fmt.Errorf().
+// args can be format args, or v2 wrappers which will be applied to the error.
+func Errorf(format string, args ...interface{}) Error {
+	var wrappers []v2.Wrapper
+
+	// pull out the args which are wrappers
+	n := 0
+	for _, arg := range args {
+		if w, ok := arg.(v2.Wrapper); ok {
+			wrappers = append(wrappers, w)
+		} else {
+			args[n] = arg
+			n++
+		}
+	}
+	args = args[:n]
+
+	return WrapSkipping(fmt.Errorf(format, args...), 1, wrappers...)
 }
 
 // UserError creates a new error with a message intended for display to an

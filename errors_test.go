@@ -10,6 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	v2 "github.com/ansel1/merry/v2"
 )
 
 func TestNew(t *testing.T) {
@@ -28,6 +30,10 @@ func TestNew(t *testing.T) {
 	if l != rl+1 {
 		t.Errorf("error line should have been %d, was %d", rl+1, 8)
 	}
+
+	// accepts wrappers vararg
+	err = New("bang", v2.WithHTTPCode(45))
+	assert.Equal(t, 45, HTTPCode(err))
 }
 
 func TestErrorf(t *testing.T) {
@@ -46,6 +52,11 @@ func TestErrorf(t *testing.T) {
 	if l != rl+1 {
 		t.Errorf("error line should have been %d, was %d", rl+1, 8)
 	}
+
+	// accepts wrappers mixed in with the args
+	err = Errorf("something %s, something %s", "borrowed", v2.WithHTTPCode(55), "blue")
+	assert.EqualError(t, err, "something borrowed, something blue")
+	assert.Equal(t, 55, HTTPCode(err))
 }
 
 func TestUserError(t *testing.T) {
