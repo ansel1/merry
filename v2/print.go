@@ -2,6 +2,7 @@ package merry
 
 import (
 	"fmt"
+	"path"
 	"runtime"
 	"sort"
 	"strings"
@@ -23,9 +24,11 @@ func Location(err error) (file string, line int) {
 // Location's result or an empty string if there's
 // no stracktrace.
 func SourceLine(err error) string {
-	file, line := Location(err)
-	if line != 0 {
-		return fmt.Sprintf("%s:%d", file, line)
+	s := Stack(err)
+	if len(s) > 0 {
+		fnc, _ := runtime.CallersFrames(s[:1]).Next()
+		_, f := path.Split(fnc.File)
+		return fmt.Sprintf("%s (%s:%d)", fnc.Function, f, fnc.Line)
 	}
 	return ""
 }

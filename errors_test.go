@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
-	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"regexp"
 )
 
 func TestNew(t *testing.T) {
@@ -415,21 +413,13 @@ func TestSourceLine(t *testing.T) {
 	source := SourceLine(nil)
 	assert.Equal(t, source, "")
 
+	_, _, rl, _ := runtime.Caller(0)
 	var err error = New("foo")
 	source = SourceLine(err)
 	t.Log(source)
 	assert.NotEqual(t, source, "")
 
-	p := regexp.MustCompile(`^.*errors_test\.go:(\d+)$`)
-
-	parts := p.FindStringSubmatch(source)
-	require.NotNil(t, parts, "source did not match path pattern: %v", source)
-
-	if i, e := strconv.Atoi(parts[1]); e != nil {
-		t.Errorf("not a number: %s", parts[1])
-	} else if i <= 0 {
-		t.Errorf("source line must be > 1: %s", parts[1])
-	}
+	assert.Equal(t, fmt.Sprintf("github.com/ansel1/merry.TestSourceLine (errors_test.go:%v)", rl+1), source)
 }
 
 func TestValue(t *testing.T) {

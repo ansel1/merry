@@ -140,26 +140,20 @@ func (e *errImpl) Unwrap() error {
 	return e.err
 }
 
-// Is implements the new go errors.Is function.  It checks the main
-// // chain of wrapped errors first, then checks the cause.
-func (e *errImpl) Is(err error) bool {
-	if is(e.err, err) {
-		return true
-	}
+// Is implements the new go errors.Is function.  Returns
+// true if is(cause, target)
+func (e *errImpl) Is(target error) bool {
 	if e.key == errKeyCause {
 		if c, ok := e.value.(error); ok {
-			return is(c, err)
+			return is(c, target)
 		}
 	}
 	return false
 }
 
-// As implements the new go errors.As function.  It checks the main
-// chain of wrapped errors first, then checks the cause.
+// As implements the new go errors.As function.  Returns
+// true if as(cause, target)
 func (e *errImpl) As(target interface{}) bool {
-	if as(e.err, target) {
-		return true
-	}
 	if e.key == errKeyCause {
 		if c, ok := e.value.(error); ok {
 			return as(c, target)

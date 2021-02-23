@@ -30,7 +30,7 @@ func (w WrapperFunc) Wrap(err error, callerDepth int) error {
 // WithValue associates a key/value pair with an error.
 func WithValue(key, value interface{}) Wrapper {
 	return WrapperFunc(func(err error, _ int) error {
-		return set(err, key, value)
+		return Set(err, key, value)
 	})
 }
 
@@ -45,7 +45,7 @@ func WithMessagef(format string, args ...interface{}) Wrapper {
 		if err == nil {
 			return nil
 		}
-		return set(err, errKeyMessage, fmt.Sprintf(format, args...))
+		return Set(err, errKeyMessage, fmt.Sprintf(format, args...))
 	})
 }
 
@@ -60,7 +60,7 @@ func WithUserMessagef(format string, args ...interface{}) Wrapper {
 		if err == nil {
 			return nil
 		}
-		return set(err, errKeyUserMessage, fmt.Sprintf(format, args...))
+		return Set(err, errKeyUserMessage, fmt.Sprintf(format, args...))
 	})
 }
 
@@ -70,7 +70,7 @@ func Append(msg string) Wrapper {
 		if err == nil {
 			return nil
 		}
-		return set(err, errKeyMessage, err.Error() + ": " + msg)
+		return Set(err, errKeyMessage, err.Error() + ": " + msg)
 	})
 }
 
@@ -80,7 +80,7 @@ func Appendf(format string, args ...interface{}) Wrapper {
 		if err == nil {
 			return nil
 		}
-		return set(err, errKeyMessage, err.Error() + ": " + fmt.Sprintf(format, args...))
+		return Set(err, errKeyMessage, err.Error() + ": " + fmt.Sprintf(format, args...))
 	})
 }
 
@@ -90,7 +90,7 @@ func Prepend(msg string) Wrapper {
 		if err == nil {
 			return nil
 		}
-		return set(err, errKeyMessage, msg + ": " + err.Error())
+		return Set(err, errKeyMessage, msg + ": " + err.Error())
 	})
 }
 
@@ -100,7 +100,7 @@ func Prependf(format string, args ...interface{}) Wrapper {
 		if err == nil {
 			return nil
 		}
-		return set(err, errKeyMessage, fmt.Sprintf(format, args...) + ": " + err.Error())
+		return Set(err, errKeyMessage, fmt.Sprintf(format, args...) + ": " + err.Error())
 	})
 }
 
@@ -134,7 +134,7 @@ func NoCaptureStack() Wrapper {
 		if hasStack(err) {
 			return err
 		}
-		return set(err, errKeyStack, nil)
+		return Set(err, errKeyStack, nil)
 	})
 }
 
@@ -155,7 +155,7 @@ func WithCause(err error) Wrapper {
 	return WithValue(errKeyCause, err)
 }
 
-// set wraps an error with a key/value pair.  This is the simplest form of associating
+// Set wraps an error with a key/value pair.  This is the simplest form of associating
 // a value with an error.  It does not capture a stacktrace, invoke hooks, or do any
 // other processing.  It is mainly intended as a primitive for writing Wrapper implementations.
 //
@@ -166,7 +166,7 @@ func WithCause(err error) Wrapper {
 //
 //     WithValue(key, value).Wrap(err)
 //
-func set(err error, key, value interface{}) error {
+func Set(err error, key, value interface{}) error {
 	if err == nil {
 		return nil
 	}

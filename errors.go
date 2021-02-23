@@ -191,7 +191,13 @@ func Cause(err error) error {
 // RootCause returns the innermost cause of the argument (i.e. the last
 // error in the cause chain)
 func RootCause(err error) error {
-	return v2.RootCause(err)
+	for {
+		cause := Cause(err)
+		if cause == nil {
+			return err
+		}
+		err = cause
+	}
 }
 
 // WithCause returns an error based on the first argument, with the cause

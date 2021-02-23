@@ -7,13 +7,28 @@ import (
 )
 
 // New creates a new error, with a stack attached.  The equivalent of golang's errors.New()
-func New(msg string) error {
-	return WrapSkipping(errors.New(msg), 1)
+func New(msg string, wrappers ...Wrapper) error {
+	return WrapSkipping(errors.New(msg), 1, wrappers...)
 }
 
-// Errorf creates a new error with a formatted message and a stack.  The equivalent of golang's fmt.Errorf()
-func Errorf(format string, a ...interface{}) error {
-	return WrapSkipping(fmt.Errorf(format, a...), 1)
+// Errorf creates a new error with a formatted message and a stack.  The equivalent of golang's fmt.Errorf().
+// args may contain either arguments to format, or Wrapper options, which will be applied to the error.
+func Errorf(format string, args ...interface{}) error {
+	var wrappers []Wrapper
+
+	// pull out the args which are wrappers
+	n := 0
+	for _, arg := range args {
+		if w, ok := arg.(Wrapper); ok {
+			wrappers = append(wrappers, w)
+		} else {
+			args[n] = arg
+			n++
+		}
+	}
+	args = args[:n]
+
+	return WrapSkipping(fmt.Errorf(format, args...), 1, wrappers...)
 }
 
 // Wrap adds context to errors by applying Wrappers.  See WithXXX() functions for Wrappers supplied
@@ -68,7 +83,7 @@ func Values(err error) map[interface{}]interface{} {
 				values[e.key] = e.value
 			}
 		}
-		err = errors.Unwrap(err)
+		err = unwrap(err)
 	}
 
 	return values
@@ -76,20 +91,20 @@ func Values(err error) map[interface{}]interface{} {
 
 // Stack returns the stack attached to an error, or nil if one is not attached
 // If e is nil, returns nil.
-func Stack(e error) []uintptr {
-	stack, _ := Value(e, errKeyStack).([]uintptr)
+func Stack(err error) []uintptr {
+	stack, _ := Value(err, errKeyStack).([]uintptr)
 	return stack
 }
 
 // HTTPCode converts an error to an http status code.  All errors
 // map to 500, unless the error has an http code attached.
 // If e is nil, returns 200.
-func HTTPCode(e error) int {
-	if e == nil {
+func HTTPCode(err error) int {
+	if err == nil {
 		return 200
 	}
 
-	code, _ := Value(e, errKeyHTTPCode).(int)
+	code, _ := Value(err, errKeyHTTPCode).(int)
 	if code == 0 {
 		return 500
 	}
@@ -99,32 +114,20 @@ func HTTPCode(e error) int {
 
 // UserMessage returns the end-user safe message.  Returns empty if not set.
 // If e is nil, returns "".
-func UserMessage(e error) string {
-	msg, _ := Value(e, errKeyUserMessage).(string)
+func UserMessage(err error) string {
+	msg, _ := Value(err, errKeyUserMessage).(string)
 	return msg
 }
 
 // Cause returns the cause of the argument.  If e is nil, or has no cause,
 // nil is returned.
-func Cause(e error) error {
+func Cause(err error) error {
 	var causer interface{ Cause() error }
-	if as(e, &causer) {
+	if as(err, &causer) {
 		return causer.Cause()
 	}
 
 	return nil
-}
-
-// RootCause returns the innermost cause of the argument (i.e. the last
-// error in the cause chain)
-func RootCause(err error) error {
-	for {
-		cause := Cause(err)
-		if cause == nil {
-			return err
-		}
-		err = cause
-	}
 }
 
 // captureStack: return an error with a stack attached.  Stack will skip
@@ -142,11 +145,7 @@ func captureStack(err error, skip int, force bool) error {
 
 	s := make([]uintptr, MaxStackDepth())
 	length := runtime.Callers(2+skip, s[:])
-	return &errImpl{
-		err:   err,
-		key:   errKeyStack,
-		value: s[:length],
-	}
+	return Set(err, errKeyStack, s[:length])
 }
 
 func hasStack(err error) bool {
@@ -158,7 +157,7 @@ func hasStack(err error) bool {
 			err = e.err
 			continue
 		}
-		err = errors.Unwrap(err)
+		err = unwrap(err)
 	}
 	return false
 }
