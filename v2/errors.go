@@ -3,6 +3,7 @@ package merry
 import (
 	"errors"
 	"fmt"
+	"github.com/ansel1/merry/v2/internal"
 	"runtime"
 )
 
@@ -50,9 +51,14 @@ func WrapSkipping(err error, skip int, wrappers ...Wrapper) error {
 		return nil
 	}
 
+	for _, h := range hooks {
+		err = h.Wrap(err, skip +1)
+	}
+
 	for _, w := range wrappers {
 		err = w.Wrap(err, skip+1)
 	}
+
 	return captureStack(err, skip+1, false)
 }
 
@@ -60,7 +66,7 @@ func WrapSkipping(err error, skip int, wrappers ...Wrapper) error {
 // If e is nil, returns nil.
 func Value(err error, key interface{}) interface{} {
 	var valuer interface{ Value(interface{}) interface{} }
-	if as(err, &valuer) {
+	if internal.As(err, &valuer) {
 		return valuer.Value(key)
 	}
 
@@ -83,7 +89,7 @@ func Values(err error) map[interface{}]interface{} {
 				values[e.key] = e.value
 			}
 		}
-		err = unwrap(err)
+		err = internal.Unwrap(err)
 	}
 
 	return values
@@ -123,7 +129,7 @@ func UserMessage(err error) string {
 // nil is returned.
 func Cause(err error) error {
 	var causer interface{ Cause() error }
-	if as(err, &causer) {
+	if internal.As(err, &causer) {
 		return causer.Cause()
 	}
 
@@ -139,7 +145,7 @@ func captureStack(err error, skip int, force bool) error {
 	if err == nil {
 		return nil
 	}
-	if !force && (!captureStacks || hasStack(err)) {
+	if !force && (!captureStacks || HasStack(err)) {
 		return err
 	}
 
@@ -148,7 +154,13 @@ func captureStack(err error, skip int, force bool) error {
 	return Set(err, errKeyStack, s[:length])
 }
 
-func hasStack(err error) bool {
+// HasStack returns true if a stack is already attached to the err.
+// If err == nil, returns false.
+//
+// If a stack capture was suppressed with NoCaptureStack(), this will
+// still return true, indicating that stack capture processing has already
+// occurred on this error.
+func HasStack(err error) bool {
 	for err != nil {
 		if e, ok := err.(*errImpl); ok {
 			if e.key == errKeyStack || e.key == errKeyFormattedStack {
@@ -157,7 +169,7 @@ func hasStack(err error) bool {
 			err = e.err
 			continue
 		}
-		err = unwrap(err)
+		err = internal.Unwrap(err)
 	}
 	return false
 }

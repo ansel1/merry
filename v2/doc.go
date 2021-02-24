@@ -87,4 +87,11 @@
 // The package contains functions for creating new errors with stacks, or adding a stack to `error`
 // instances.  Functions with add context (e.g. `WithValue()`) work on any `error`, and will
 // automatically convert them to merry errors (with a stack) if necessary.
+//
+// Hooks
+//
+// AddHooks() can install wrappers which are applied to all errors processed by this package.  Hooks
+// are applied before any other wrappers or processing takes place.  They can be used to integrate
+// with errors from other packages, normalizing errors (such as applying standard status codes to
+// application errors), localizing user messages, or replacing the stack capturing mechanism.
 package merry

@@ -2,6 +2,7 @@ package merry
 
 import (
 	"fmt"
+	"github.com/ansel1/merry/v2/internal"
 	"io"
 	"strings"
 )
@@ -145,7 +146,7 @@ func (e *errImpl) Unwrap() error {
 func (e *errImpl) Is(target error) bool {
 	if e.key == errKeyCause {
 		if c, ok := e.value.(error); ok {
-			return is(c, target)
+			return internal.Is(c, target)
 		}
 	}
 	return false
@@ -156,7 +157,7 @@ func (e *errImpl) Is(target error) bool {
 func (e *errImpl) As(target interface{}) bool {
 	if e.key == errKeyCause {
 		if c, ok := e.value.(error); ok {
-			return as(c, target)
+			return internal.As(c, target)
 		}
 	}
 	return false

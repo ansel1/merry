@@ -1,14 +1,14 @@
 // +build go1.13
 
-package merry
+package internal
 
 import "errors"
 
 // If using >=go1.13, golang.org/x/xerrors is not needed.
 // xerrors can be removed once <go1.12 support is dropped
 
-var is = errors.Is
+var Is = errors.Is
 
-var as = errors.As
+var As = errors.As
 
-var unwrap = errors.Unwrap
+var Unwrap = errors.Unwrap

@@ -131,7 +131,7 @@ func NoCaptureStack() Wrapper {
 	return WrapperFunc(func(err error, _ int) error {
 		// if this err already has a stack set, there is no need to set the
 		// stack property again, and we don't want to override the prior the stack
-		if hasStack(err) {
+		if HasStack(err) {
 			return err
 		}
 		return Set(err, errKeyStack, nil)

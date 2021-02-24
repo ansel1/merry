@@ -2,6 +2,7 @@ package merry
 
 import (
 	"errors"
+	"github.com/ansel1/merry/v2/internal"
 	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
@@ -46,7 +47,7 @@ func TestWrap(t *testing.T) {
 	assert.Equal(t, rl+1, l)
 
 	// new error should wrap the old error
-	assert.True(t, is(err, ogerr))
+	assert.True(t, internal.Is(err, ogerr))
 
 	// wrap accepts wrapper args
 	err = Wrap(err, WithUserMessage("hi"), WithHTTPCode(6))
@@ -65,7 +66,7 @@ func TestWrap(t *testing.T) {
 				count++
 			}
 		}
-		err1 = unwrap(err1)
+		err1 = internal.Unwrap(err1)
 	}
 
 	// wrapping nil -> nil
@@ -86,7 +87,7 @@ func TestWrapSkipping(t *testing.T) {
 	assert.Equal(t, rl+3, l)
 
 	// new error should wrap the old error
-	assert.True(t, is(err, ogerr))
+	assert.True(t, internal.Is(err, ogerr))
 
 	// wrap accepts wrapper args
 	err = WrapSkipping(err, 0, WithUserMessage("hi"), WithHTTPCode(6))
@@ -105,7 +106,7 @@ func TestWrapSkipping(t *testing.T) {
 				count++
 			}
 		}
-		err1 = unwrap(err1)
+		err1 = internal.Unwrap(err1)
 	}
 
 	// wrapping nil -> nil
@@ -253,4 +254,16 @@ func TestCause(t *testing.T) {
 	err = Wrap(err, WithUserMessage("red"))
 	assert.EqualError(t, Cause(err), "boom")
 
+}
+
+func TestHasStack(t *testing.T) {
+	// nil -> false
+	assert.False(t, HasStack(nil))
+
+	// errors without stacks
+	assert.False(t, HasStack(errors.New("boom")))
+
+	// errors with stacks
+	assert.True(t, HasStack(New("boom")))
+	assert.True(t, HasStack(New("boom", NoCaptureStack())))
 }

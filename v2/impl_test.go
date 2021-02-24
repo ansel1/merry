@@ -3,6 +3,7 @@ package merry
 import (
 	"errors"
 	"fmt"
+	"github.com/ansel1/merry/v2/internal"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -101,15 +102,15 @@ func TestErrImpl_Is(t *testing.T) {
 	// an error is all the errors it wraps
 	e1 := New("blue")
 	e2 := Wrap(e1, WithHTTPCode(5))
-	assert.True(t, is(e2, e1))
-	assert.False(t, is(e1, e2))
+	assert.True(t, internal.Is(e2, e1))
+	assert.False(t, internal.Is(e1, e2))
 
 	// is works through other unwrapper implementations
 	e3 := &UnwrapperError{err: e2}
 	e4 := Wrap(e3, WithUserMessage("hi"))
-	assert.True(t, is(e4, e3))
-	assert.True(t, is(e4, e2))
-	assert.True(t, is(e4, e1))
+	assert.True(t, internal.Is(e4, e3))
+	assert.True(t, internal.Is(e4, e2))
+	assert.True(t, internal.Is(e4, e1))
 
 	// an error is also any of the causes
 	rootCause := errors.New("ioerror")
@@ -117,9 +118,9 @@ func TestErrImpl_Is(t *testing.T) {
 	outererr := New("failed", WithCause(rootCause1))
 	outererr1 := Wrap(outererr, WithUserMessage("sorry!"))
 
-	assert.True(t, is(outererr1, outererr))
-	assert.True(t, is(outererr1, rootCause1))
-	assert.True(t, is(outererr1, rootCause))
+	assert.True(t, internal.Is(outererr1, outererr))
+	assert.True(t, internal.Is(outererr1, rootCause1))
+	assert.True(t, internal.Is(outererr1, rootCause))
 }
 
 type redError int
@@ -133,13 +134,13 @@ func TestErrImpl_As(t *testing.T) {
 
 	// as will find matching errors in the chain
 	var rerr *redError
-	assert.False(t, as(e1, &rerr))
+	assert.False(t, internal.As(e1, &rerr))
 	assert.Nil(t, rerr)
 
 	rr := redError(3)
 	e2 := Wrap(&rr)
 
-	assert.True(t, as(e2, &rerr))
+	assert.True(t, internal.As(e2, &rerr))
 	assert.Equal(t, &rr, rerr)
 
 	// test that it works with non-merry errors in the chain
@@ -148,12 +149,12 @@ func TestErrImpl_As(t *testing.T) {
 
 	rerr = nil
 
-	assert.True(t, as(e3, &rerr))
+	assert.True(t, internal.As(e3, &rerr))
 	assert.Equal(t, &rr, rerr)
 
 	rerr = nil
 
-	assert.True(t, as(w, &rerr))
+	assert.True(t, internal.As(w, &rerr))
 	assert.Equal(t, &rr, rerr)
 }
 
