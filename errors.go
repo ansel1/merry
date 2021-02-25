@@ -35,6 +35,7 @@ package merry
 import (
 	"errors"
 	"fmt"
+	"github.com/ansel1/merry/internal"
 	v2 "github.com/ansel1/merry/v2"
 )
 
@@ -287,7 +288,7 @@ func Is(e error, originals ...error) bool {
 // deprecated: use errors.Is() or errors.As() instead.
 func Unwrap(e error) error {
 	for {
-		next := errors.Unwrap(e)
+		next := internal.Unwrap(e)
 		if next == nil {
 			return e
 		}

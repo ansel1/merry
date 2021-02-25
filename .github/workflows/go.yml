@@ -55,4 +55,4 @@ jobs:
           make tools all
           cd v2
           go get ./...
-          make tools coretest
+          make tools all

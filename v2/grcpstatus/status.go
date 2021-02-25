@@ -1,3 +1,5 @@
+// +build go1.13
+
 // Package status is a drop-in replacement for the google.golang.org/grpc/status
 // package, but is compatible with merry errors.
 //
