@@ -65,19 +65,16 @@ func (e *errImpl) Format(s fmt.State, verb rune) {
 }
 
 func msgWithCauses(err error) string {
-	var sb strings.Builder
+	messages := make([]string, 0, 5)
 
 	for err != nil {
 		if ce := err.Error(); ce != "" {
-			if sb.Len() > 0 {
-				sb.WriteString(": ")
-			}
-			sb.WriteString(ce)
+			messages = append(messages, ce)
 		}
 		err = Cause(err)
 	}
 
-	return sb.String()
+	return strings.Join(messages, ": ")
 }
 
 // Error implements golang's error interface
