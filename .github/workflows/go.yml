@@ -51,6 +51,8 @@ jobs:
       - name: Build
         run: |
           export PATH=$PATH:$GOPATH/bin
+          go get ./...
           make tools all
           cd v2
+          go get ./...
           make tools coretest
