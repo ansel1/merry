@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-
-
 // Location returns zero values if e has no stacktrace
 func Location(err error) (file string, line int) {
 	s := Stack(err)

@@ -52,7 +52,7 @@ func WrapSkipping(err error, skip int, wrappers ...Wrapper) error {
 	}
 
 	for _, h := range hooks {
-		err = h.Wrap(err, skip +1)
+		err = h.Wrap(err, skip+1)
 	}
 
 	for _, w := range wrappers {
@@ -65,9 +65,15 @@ func WrapSkipping(err error, skip int, wrappers ...Wrapper) error {
 // Value returns the value for key, or nil if not set.
 // If e is nil, returns nil.
 func Value(err error, key interface{}) interface{} {
-	var valuer interface{ Value(interface{}) interface{} }
-	if internal.As(err, &valuer) {
-		return valuer.Value(key)
+	for err != nil {
+		if impl, ok := err.(*errImpl); ok {
+			if impl.key == key {
+				return impl.value
+			}
+			err = impl.err
+		} else {
+			err = internal.Unwrap(err)
+		}
 	}
 
 	return nil
@@ -128,12 +134,8 @@ func UserMessage(err error) string {
 // Cause returns the cause of the argument.  If e is nil, or has no cause,
 // nil is returned.
 func Cause(err error) error {
-	var causer interface{ Cause() error }
-	if internal.As(err, &causer) {
-		return causer.Cause()
-	}
-
-	return nil
+	cause, _ := Value(err, errKeyCause).(error)
+	return cause
 }
 
 // captureStack: return an error with a stack attached.  Stack will skip
@@ -167,9 +169,9 @@ func HasStack(err error) bool {
 				return true
 			}
 			err = e.err
-			continue
+		} else {
+			err = internal.Unwrap(err)
 		}
-		err = internal.Unwrap(err)
 	}
 	return false
 }

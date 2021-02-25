@@ -32,7 +32,7 @@ func init() {
 }
 
 var detailsLock sync.Mutex
-var detailFields = map[string]func (err error) interface{}{}
+var detailFields = map[string]func(err error) interface{}{}
 
 // RegisterDetail registers an error property key in a global registry, with a label.
 // See RegisterDetailFunc.  This function just wraps a call to Value(key) and passes
@@ -40,7 +40,7 @@ var detailFields = map[string]func (err error) interface{}{}
 func RegisterDetail(label string, key interface{}) {
 	RegisterDetailFunc(label, func(err error) interface{} {
 		return Value(err, key)
-	} )
+	})
 }
 
 // RegisterDetailFunc registers a label and a function for extracting a value from
@@ -78,7 +78,7 @@ func RegisterDetail(label string, key interface{}) {
 // to register those properties which would make sense to include in the Details() output.
 // In other words, it's up to the author of the package which generates the errors
 // to publish printable error details, not the callers of the package.
-func RegisterDetailFunc(label string, f func (err error) interface{}) {
+func RegisterDetailFunc(label string, f func(err error) interface{}) {
 	detailsLock.Lock()
 	defer detailsLock.Unlock()
 

@@ -1,8 +1,8 @@
-package pkg_errors
+package goerrors
 
 import (
 	"github.com/ansel1/merry/v2"
-	"github.com/pkg/errors"
+	"github.com/go-errors/errors"
 	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
@@ -22,5 +22,5 @@ func TestHook(t *testing.T) {
 	file, line := merry.Location(err)
 
 	assert.Contains(t, file, "hook_test.go")
-	assert.Equal(t, rl + 1, line)
+	assert.Equal(t, rl+1, line)
 }

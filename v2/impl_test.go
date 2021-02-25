@@ -19,8 +19,8 @@ func TestErrImpl_Format(t *testing.T) {
 
 	// %v and %s also print the cause, if there is one
 	e = New("Bye", WithCause(e))
-	assert.Equal(t, fmt.Sprintf("%v", e), e.Error()+": Bye")
-	assert.Equal(t, fmt.Sprintf("%s", e), e.Error()+": Bye")
+	assert.Equal(t, fmt.Sprintf("%v", e), "Bye: Hi")
+	assert.Equal(t, fmt.Sprintf("%s", e), "Bye: Hi")
 
 	// %+v should return full details, including properties registered with RegisterXXX() functions
 	// and the stack.
@@ -38,47 +38,6 @@ func TestErrImpl_Error(t *testing.T) {
 	assert.Equal(t, "blue", err.Error())
 }
 
-func TestErrImpl_Cause(t *testing.T) {
-	// err with no cause returns nil
-	base := &errImpl{err: errors.New("boom"), key: "color", value: "red"}
-	assert.Nil(t, base.Cause())
-
-	// err with cause will return cause
-	withCause := &errImpl{err: errors.New("bang"), key: errKeyCause, value: base}
-	assert.EqualError(t, withCause.Cause(), "boom")
-
-	// cause will search whole chain of errImpls
-	impl2 := &errImpl{err: withCause, key: errKeyUserMessage, value:"yikes"}
-	assert.EqualError(t, impl2.Cause(), "boom")
-
-	// cause will fallback on the package Cause() function if it encounters
-	// an error of a different type in the chain
-	err := &UnwrapperError{err: impl2}
-	impl3 := &errImpl{err: err, key: "size", value: "big"}
-	assert.EqualError(t, impl3.Cause(), "boom")
-}
-
-func TestErrImpl_Value(t *testing.T) {
-	// returns value if key matches
-	base := &errImpl{err: errors.New("boom"), key: "color", value: "red"}
-	assert.Nil(t, base.Value("size"))
-	assert.Equal(t, "red", base.Value("color"))
-
-	// will search whole chain of errImpls
-	impl2 := &errImpl{err: base, key: errKeyUserMessage, value:"yikes"}
-	assert.Nil(t, impl2.Value("size"))
-	assert.Equal(t, "red", impl2.Value("color"))
-	assert.Equal(t, "yikes", impl2.Value(errKeyUserMessage))
-
-	// cause will fallback on the package Cause() function if it encounters
-	// an error of a different type in the chain
-	err := &UnwrapperError{err: impl2}
-	impl3 := &errImpl{err: err, key: "size", value: "big"}
-	assert.Equal(t, "big", impl3.Value("size"))
-	assert.Equal(t, "red", impl3.Value("color"))
-	assert.Equal(t, "yikes", impl3.Value(errKeyUserMessage))
-}
-
 // UnwrapperError is a simple error implementation that wraps another error, and implements `Unwrap() error`.
 // It is used to test when errors not created by this package are inserted in the chain of wrapped errors.
 type UnwrapperError struct {
@@ -94,7 +53,7 @@ func (w *UnwrapperError) Unwrap() error {
 }
 
 func TestErrImpl_Unwrap(t *testing.T) {
-	e1 := &errImpl{err: errors.New("blue"), key:"color", value:"red"}
+	e1 := &errImpl{err: errors.New("blue"), key: "color", value: "red"}
 	assert.EqualError(t, e1.Unwrap(), "blue")
 }
 
@@ -158,6 +117,6 @@ func TestErrImpl_As(t *testing.T) {
 	assert.Equal(t, &rr, rerr)
 }
 
-
-
-
+func TestErrImpl_String(t *testing.T) {
+	assert.Equal(t, "blue", New("blue").(*errImpl).String())
+}

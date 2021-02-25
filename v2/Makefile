@@ -5,10 +5,10 @@ all: fmt build lint test
 
 build:
 	go build
-
+	
 
 lint:
-	golint -set_exit_status
+	golint -set_exit_status ./...
 
 clean:
 	rm -rf build
@@ -18,6 +18,9 @@ fmt:
 
 test:
 	go test ./...
+
+coretest:
+	go test
 
 coverage:
 	@if [ ! -d build ]; then mkdir build; fi

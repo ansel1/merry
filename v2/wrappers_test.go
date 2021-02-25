@@ -9,111 +9,111 @@ import (
 
 func TestWrappers(t *testing.T) {
 	tests := []struct {
-		name string
-		wrapper Wrapper
+		name       string
+		wrapper    Wrapper
 		assertions func(*testing.T, error)
 	}{
 		{
-			name:"WithValue",
+			name:    "WithValue",
 			wrapper: WithValue("color", "red"),
 			assertions: func(t *testing.T, err error) {
 				assert.Equal(t, "red", Value(err, "color"))
 			},
 		},
 		{
-			name: "WithMessage",
+			name:    "WithMessage",
 			wrapper: WithMessage("boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "boom")
 			},
 		},
 		{
-			name:       "WithMessagef",
-			wrapper:    WithMessagef("%s %s", "big", "boom"),
+			name:    "WithMessagef",
+			wrapper: WithMessagef("%s %s", "big", "boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "big boom")
 			},
 		},
 		{
-			name:       "WithUserMessage",
-			wrapper:    WithUserMessage("boom"),
+			name:    "WithUserMessage",
+			wrapper: WithUserMessage("boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.Equal(t, "boom", UserMessage(err))
 			},
 		},
 		{
-			name:       "WithUserMessagef",
-			wrapper:    WithUserMessagef("%s %s", "big", "boom"),
+			name:    "WithUserMessagef",
+			wrapper: WithUserMessagef("%s %s", "big", "boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.Equal(t, "big boom", UserMessage(err))
 			},
 		},
 		{
-			name:       "Append",
-			wrapper:    Append("boom"),
+			name:    "Append",
+			wrapper: Append("boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "bang: boom")
 			},
 		},
 		{
-			name:       "Appendf",
-			wrapper:    Appendf("%s %s", "big", "boom"),
+			name:    "Appendf",
+			wrapper: Appendf("%s %s", "big", "boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "bang: big boom")
 			},
 		},
 		{
-			name:       "Prepend",
-			wrapper:    Prepend("boom"),
+			name:    "Prepend",
+			wrapper: Prepend("boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "boom: bang")
 			},
 		},
 		{
-			name:       "Prependf",
-			wrapper:    Prependf("%s %s", "big", "boom"),
+			name:    "Prependf",
+			wrapper: Prependf("%s %s", "big", "boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "big boom: bang")
 			},
 		},
 		{
-			name:       "WithHTTPCode",
-			wrapper:    WithHTTPCode(56),
+			name:    "WithHTTPCode",
+			wrapper: WithHTTPCode(56),
 			assertions: func(t *testing.T, err error) {
 				assert.Equal(t, 56, HTTPCode(err))
 			},
 		},
 		{
-			name:       "WithStack",
-			wrapper:    WithStack([]uintptr{1, 2, 3, 4, 5}),
+			name:    "WithStack",
+			wrapper: WithStack([]uintptr{1, 2, 3, 4, 5}),
 			assertions: func(t *testing.T, err error) {
 				assert.Equal(t, []uintptr{1, 2, 3, 4, 5}, Stack(err))
 			},
 		},
 		{
-			name:       "WithFormattedStack",
-			wrapper:    WithFormattedStack([]string{"blue", "red"}),
+			name:    "WithFormattedStack",
+			wrapper: WithFormattedStack([]string{"blue", "red"}),
 			assertions: func(t *testing.T, err error) {
 				assert.Equal(t, []string{"blue", "red"}, FormattedStack(err))
 			},
 		},
 		{
-			name:       "NoCaptureStack",
-			wrapper:    NoCaptureStack(),
+			name:    "NoCaptureStack",
+			wrapper: NoCaptureStack(),
 			assertions: func(t *testing.T, err error) {
 				assert.Nil(t, Stack(err))
 			},
 		},
 		{
-			name:       "CaptureStack",
-			wrapper:    CaptureStack(false),
+			name:    "CaptureStack",
+			wrapper: CaptureStack(false),
 			assertions: func(t *testing.T, err error) {
 				assert.NotEmpty(t, Stack(err))
 			},
 		},
 		{
-			name:       "WithCause",
-			wrapper:    WithCause(errors.New("crash")),
+			name:    "WithCause",
+			wrapper: WithCause(errors.New("crash")),
 			assertions: func(t *testing.T, err error) {
 				assert.EqualError(t, Cause(err), "crash")
 			},

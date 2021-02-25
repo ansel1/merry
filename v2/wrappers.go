@@ -70,7 +70,7 @@ func Append(msg string) Wrapper {
 		if err == nil {
 			return nil
 		}
-		return Set(err, errKeyMessage, err.Error() + ": " + msg)
+		return Set(err, errKeyMessage, err.Error()+": "+msg)
 	})
 }
 
@@ -80,7 +80,7 @@ func Appendf(format string, args ...interface{}) Wrapper {
 		if err == nil {
 			return nil
 		}
-		return Set(err, errKeyMessage, err.Error() + ": " + fmt.Sprintf(format, args...))
+		return Set(err, errKeyMessage, err.Error()+": "+fmt.Sprintf(format, args...))
 	})
 }
 
@@ -90,7 +90,7 @@ func Prepend(msg string) Wrapper {
 		if err == nil {
 			return nil
 		}
-		return Set(err, errKeyMessage, msg + ": " + err.Error())
+		return Set(err, errKeyMessage, msg+": "+err.Error())
 	})
 }
 
@@ -100,7 +100,7 @@ func Prependf(format string, args ...interface{}) Wrapper {
 		if err == nil {
 			return nil
 		}
-		return Set(err, errKeyMessage, fmt.Sprintf(format, args...) + ": " + err.Error())
+		return Set(err, errKeyMessage, fmt.Sprintf(format, args...)+": "+err.Error())
 	})
 }
 

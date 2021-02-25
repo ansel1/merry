@@ -92,48 +92,9 @@ func (e *errImpl) Error() string {
 	return e.err.Error()
 }
 
-// Cause returns the cause of the receiver, or nil if there is
-// no cause, or the receiver is nil
-func (e *errImpl) Cause() error {
-	v, ok, err := e.iterativeValueSearch(errKeyCause)
-	if ok {
-		if c, ok := v.(error); ok {
-			return c
-		}
-	}
-
-	// fallback on recursion.  Try to unwrap to a causer.
-	return Cause(err)
-}
-
-// Value returns the value associated with the specified key.  It will search
-// recursively through all wrapped errors.
-func (e *errImpl) Value(key interface{}) interface{} {
-	v, ok, err := e.iterativeValueSearch(key)
-	if ok {
-		return v
-	}
-
-	return Value(err, key)
-}
-
-func (e *errImpl) iterativeValueSearch(key interface{}) (interface{}, bool, error) {
-	// optimization: search using iteration first, until we get to a error
-	// which isn't our internal type.  It's much faster than recursion.
-	for {
-		if key == e.key {
-			return e.value, true, e
-		}
-
-		if n, ok := e.err.(*errImpl); ok {
-			e = n
-		} else {
-			break
-		}
-	}
-
-	// search failed.  return the most deeply wrapped error, so it can be unwrapped and searched recursively
-	return nil, false, e.err
+// String implements fmt.Stringer
+func (e *errImpl) String() string {
+	return e.Error()
 }
 
 // Unwrap returns the next wrapped error.

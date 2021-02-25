@@ -24,7 +24,7 @@ func TestLocation(t *testing.T) {
 	_, _, rl, _ := runtime.Caller(0)
 	err := New("bang")
 	f, l = Location(err)
-	assert.Contains(t, f, "errors_test.go")
+	assert.Contains(t, f, "print_test.go")
 	assert.Equal(t, rl+1, l)
 }
 
@@ -40,7 +40,7 @@ func TestSourceLine(t *testing.T) {
 	_, _, rl, _ := runtime.Caller(0)
 	err := New("bang")
 	line = SourceLine(err)
-	assert.Equal(t, fmt.Sprintf("github.com/ansel1/merry/v2.TestSourceLine (print_test.go:%v)",rl + 1), line)
+	assert.Equal(t, fmt.Sprintf("github.com/ansel1/merry/v2.TestSourceLine (print_test.go:%v)", rl+1), line)
 }
 
 func TestFormattedStack(t *testing.T) {
@@ -55,7 +55,7 @@ func TestFormattedStack(t *testing.T) {
 	err := New("bang")
 	lines := FormattedStack(err)
 	assert.NotEmpty(t, lines)
-	assert.Regexp(t, `github\.com/ansel1/merry/v2\.TestFormattedStack\n\t.+print_test.go:` + strconv.Itoa(rl+1), lines[0])
+	assert.Regexp(t, `github\.com/ansel1/merry/v2\.TestFormattedStack\n\t.+print_test.go:`+strconv.Itoa(rl+1), lines[0])
 
 	// formatted stack can be set explicitly
 	fakeStack := []string{"blue", "red"}

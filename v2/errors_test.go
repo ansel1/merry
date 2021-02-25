@@ -113,16 +113,6 @@ func TestWrapSkipping(t *testing.T) {
 	assert.Nil(t, WrapSkipping(nil, 1))
 }
 
-type Valuer struct{}
-
-func (Valuer) Error() string {
-	return "boom"
-}
-
-func (Valuer) Value(key interface{}) interface{} {
-	return "bam"
-}
-
 func TestValue(t *testing.T) {
 	// nil -> nil
 	assert.Nil(t, Value(nil, "color"))
@@ -133,10 +123,6 @@ func TestValue(t *testing.T) {
 	err = Wrap(err, WithValue("color", "red"))
 	assert.Equal(t, "red", Value(err, "color"))
 
-	// supports interface
-	err = Wrap(&Valuer{})
-	assert.Equal(t, "bam", Value(err, "color"))
-
 	// will traverse non-merry errors in the chain
 	err = New("bam", WithValue("color", "red"))
 	err = &UnwrapperError{err}
@@ -145,7 +131,7 @@ func TestValue(t *testing.T) {
 
 	// will not traverse causes
 	err = New("whoops", WithCause(err))
-	assert.Equal(t, "red", Value(err, "color"))
+	assert.Equal(t, nil, Value(err, "color"))
 }
 
 func TestValues(t *testing.T) {
@@ -164,10 +150,10 @@ func TestValues(t *testing.T) {
 	values := Values(err)
 
 	assert.Equal(t, map[interface{}]interface{}{
-		errKeyStack: Stack(err),
+		errKeyStack:       Stack(err),
 		errKeyUserMessage: "bam",
-		errKeyHTTPCode: 4,
-		"color": "red",
+		errKeyHTTPCode:    4,
+		"color":           "red",
 	}, values)
 }
 
@@ -223,19 +209,6 @@ func TestUserMessage(t *testing.T) {
 	assert.Equal(t, "red", UserMessage(err))
 }
 
-type Causer struct {
-	msg string
-	cause error
-}
-
-func (c *Causer) Error() string {
-	return c.msg
-}
-
-func (c *Causer) Cause() error {
-	return c.cause
-}
-
 func TestCause(t *testing.T) {
 	// nil -> nil
 	assert.Nil(t, Cause(nil))
@@ -247,13 +220,6 @@ func TestCause(t *testing.T) {
 	root := errors.New("boom")
 	err := New("yikes", WithCause(root))
 	assert.EqualError(t, Cause(err), "boom")
-
-	// works with causer interface
-	err = errors.New("boom")
-	err = &Causer{msg: "yikes", cause: err}
-	err = Wrap(err, WithUserMessage("red"))
-	assert.EqualError(t, Cause(err), "boom")
-
 }
 
 func TestHasStack(t *testing.T) {
