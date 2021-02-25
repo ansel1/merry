@@ -46,10 +46,11 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
       - uses: actions/checkout@v2
+        with:
+          path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
       - name: Build
         run: |
-          echo $pwd
-#          export PATH=$PATH:$GOPATH/bin
-#          make tools all
-#          cd v2
-#          make tools coretest
+          export PATH=$PATH:$GOPATH/bin
+          make tools all
+          cd v2
+          make tools coretest
