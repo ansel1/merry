@@ -1,4 +1,4 @@
-merry [![Build Status](https://travis-ci.org/ansel1/merry.svg?branch=master)](https://travis-ci.org/ansel1/merry) [![GoDoc](https://godoc.org/github.com/ansel1/merry?status.png)](https://godoc.org/github.com/ansel1/merry) [![Go Report Card](https://goreportcard.com/badge/github.com/ansel1/merry)](https://goreportcard.com/report/github.com/ansel1/merry)
+merry [![Build](https://github.com/ansel1/merry/workflows/Build/badge.svg)](https://github.com/ansel1/merry/actions?query=branch%3Amaster+workflow%3ABuild+) [![GoDoc](https://godoc.org/github.com/ansel1/merry?status.png)](https://godoc.org/github.com/ansel1/merry) [![Go Report Card](https://goreportcard.com/badge/github.com/ansel1/merry)](https://goreportcard.com/report/github.com/ansel1/merry)
 =====
 
 Add context to errors, including automatic stack capture, cause chains, HTTP status code, user
@@ -10,7 +10,7 @@ inspiration from https://github.com/go-errgo/errgo and https://github.com/amattn
 V2
 -- 
 
-github.com/ansel1/merry/v2 now replaces v1.  v1 will continue to be supported.  v1 has been re-implemented
+[github.com/ansel1/merry/v2](https://github.com/ansel1/merry/v2) now replaces v1.  v1 will continue to be supported.  v1 has been re-implemented
 in terms of v2, and the two packages can be used together and interchangeably.
 
 There are some small enhancements and changes to v1 with the introduction of v2:
