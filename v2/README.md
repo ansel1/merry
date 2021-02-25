@@ -1,4 +1,4 @@
-merry [![Build Status](https://travis-ci.org/ansel1/merry.svg?branch=master)](https://travis-ci.org/ansel1/merry) [![GoDoc](https://godoc.org/github.com/ansel1/merry/v2?status.png)](https://godoc.org/github.com/ansel1/merry/v2) [![Go Report Card](https://goreportcard.com/badge/github.com/ansel1/merry/v2)](https://goreportcard.com/report/github.com/ansel1/merry/v2)
+merry [![Build](https://github.com/ansel1/merry/workflows/Build/badge.svg)](https://github.com/ansel1/merry/actions?query=branch%3Amaster+workflow%3ABuild+) [![GoDoc](https://godoc.org/github.com/ansel1/merry/v2?status.png)](https://godoc.org/github.com/ansel1/merry/v2) [![Go Report Card](https://goreportcard.com/badge/github.com/ansel1/merry/v2)](https://goreportcard.com/report/github.com/ansel1/merry/v2)
 =====
 
 Add context to errors, including automatic stack capture, cause chains, HTTP status code, user
