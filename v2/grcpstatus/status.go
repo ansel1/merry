@@ -1,5 +1,3 @@
-// +build go1.13
-
 // Package status is a drop-in replacement for the google.golang.org/grpc/status
 // package, but is compatible with merry errors.
 //
@@ -16,9 +14,9 @@ package status
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/ansel1/merry/v2"
+	"github.com/ansel1/merry/v2/internal"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
@@ -82,7 +80,7 @@ func FromError(err error) (s *Status, ok bool) {
 	}
 
 	var statuser GRPCStatuser
-	if errors.As(err, &statuser) {
+	if internal.As(err, &statuser) {
 		return statuser.GRPCStatus(), true
 	}
 
@@ -202,11 +200,11 @@ func Code(err error) codes.Code {
 	switch {
 	case err == nil:
 		return codes.OK
-	case errors.As(err, &grpcErr):
+	case internal.As(err, &grpcErr):
 		return grpcErr.GRPCStatus().Code()
-	case errors.Is(err, context.DeadlineExceeded):
+	case internal.Is(err, context.DeadlineExceeded):
 		return codes.DeadlineExceeded
-	case errors.Is(err, context.Canceled):
+	case internal.Is(err, context.Canceled):
 		return codes.Canceled
 	default:
 		return CodeFromHTTPStatus(merry.HTTPCode(err))
