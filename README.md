@@ -10,7 +10,7 @@ inspiration from https://github.com/go-errgo/errgo and https://github.com/amattn
 V2
 -- 
 
-[github.com/ansel1/merry/v2](https://github.com/ansel1/merry/v2) now replaces v1.  v1 will continue to be supported.  v1 has been re-implemented
+[github.com/ansel1/merry/v2](https://github.com/ansel1/merry/tree/master/v2) now replaces v1.  v1 will continue to be supported.  v1 has been re-implemented
 in terms of v2, and the two packages can be used together and interchangeably.
 
 There are some small enhancements and changes to v1 with the introduction of v2:
