@@ -250,23 +250,23 @@ func WithUserMessagef(err error, format string, args ...interface{}) Error {
 // Append a message after the current error message, in the format "original: new".
 // If e == nil, return nil.
 func Append(err error, msg string) Error {
-	return WrapSkipping(err, 1, v2.Append(msg))
+	return WrapSkipping(err, 1, v2.AppendMessage(msg))
 }
 
 // Appendf is the same as Append, but uses fmt.Sprintf().
 func Appendf(err error, format string, args ...interface{}) Error {
-	return WrapSkipping(err, 1, v2.Appendf(format, args...))
+	return WrapSkipping(err, 1, v2.AppendMessagef(format, args...))
 }
 
 // Prepend a message before the current error message, in the format "new: original".
 // If e == nil, return nil.
 func Prepend(err error, msg string) Error {
-	return WrapSkipping(err, 1, v2.Prepend(msg))
+	return WrapSkipping(err, 1, v2.PrependMessage(msg))
 }
 
 // Prependf is the same as Prepend, but uses fmt.Sprintf()
 func Prependf(err error, format string, args ...interface{}) Error {
-	return WrapSkipping(err, 1, v2.Prependf(format, args...))
+	return WrapSkipping(err, 1, v2.PrependMessagef(format, args...))
 }
 
 // Is is equivalent to errors.Is, but tests against multiple targets.

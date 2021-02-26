@@ -72,22 +72,22 @@ func (e *errImpl) WithUserMessagef(format string, args ...interface{}) Error {
 
 // Append is equivalent to Append(err, msg).
 func (e *errImpl) Append(msg string) Error {
-	return WrapSkipping(e, 1, v2.Append(msg))
+	return WrapSkipping(e, 1, v2.AppendMessage(msg))
 }
 
 // Appendf is equivalent to Appendf(err, format, msg).
 func (e *errImpl) Appendf(format string, args ...interface{}) Error {
-	return WrapSkipping(e, 1, v2.Appendf(format, args...))
+	return WrapSkipping(e, 1, v2.AppendMessagef(format, args...))
 }
 
 // Prepend is equivalent to Prepend(err, msg).
 func (e *errImpl) Prepend(msg string) Error {
-	return WrapSkipping(e, 1, v2.Prepend(msg))
+	return WrapSkipping(e, 1, v2.PrependMessage(msg))
 }
 
 // Prependf is equivalent to Prependf(err, format, args...).
 func (e *errImpl) Prependf(format string, args ...interface{}) Error {
-	return WrapSkipping(e, 1, v2.Prependf(format, args...))
+	return WrapSkipping(e, 1, v2.PrependMessagef(format, args...))
 }
 
 // WithCause is equivalent to WithCause(e, err).

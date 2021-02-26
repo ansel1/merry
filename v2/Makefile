@@ -1,7 +1,7 @@
 # Expands to list this project's go packages, excluding the vendor folder
 SHELL = bash
 
-all: fmt build lint test
+all: fmt build test lint
 
 build:
 	go build

@@ -64,8 +64,8 @@ func WithUserMessagef(format string, args ...interface{}) Wrapper {
 	})
 }
 
-// Append a message after the current error message, in the format "original: new".
-func Append(msg string) Wrapper {
+// AppendMessage a message after the current error message, in the format "original: new".
+func AppendMessage(msg string) Wrapper {
 	return WrapperFunc(func(err error, _ int) error {
 		if err == nil {
 			return nil
@@ -74,8 +74,8 @@ func Append(msg string) Wrapper {
 	})
 }
 
-// Appendf is the same as Append, but with a formatted message.
-func Appendf(format string, args ...interface{}) Wrapper {
+// AppendMessagef is the same as AppendMessage, but with a formatted message.
+func AppendMessagef(format string, args ...interface{}) Wrapper {
 	return WrapperFunc(func(err error, _ int) error {
 		if err == nil {
 			return nil
@@ -84,8 +84,8 @@ func Appendf(format string, args ...interface{}) Wrapper {
 	})
 }
 
-// Prepend a message before the current error message, in the format "new: original".
-func Prepend(msg string) Wrapper {
+// PrependMessage a message before the current error message, in the format "new: original".
+func PrependMessage(msg string) Wrapper {
 	return WrapperFunc(func(err error, _ int) error {
 		if err == nil {
 			return nil
@@ -94,8 +94,8 @@ func Prepend(msg string) Wrapper {
 	})
 }
 
-// Prependf is the same as Prepend, but with a formatted message.
-func Prependf(format string, args ...interface{}) Wrapper {
+// PrependMessagef is the same as PrependMessage, but with a formatted message.
+func PrependMessagef(format string, args ...interface{}) Wrapper {
 	return WrapperFunc(func(err error, _ int) error {
 		if err == nil {
 			return nil

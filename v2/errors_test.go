@@ -113,6 +113,58 @@ func TestWrapSkipping(t *testing.T) {
 	assert.Nil(t, WrapSkipping(nil, 1))
 }
 
+func TestAppend(t *testing.T) {
+	// nil -> nil
+	assert.Nil(t, Append(nil, "big"))
+
+	// append message
+	assert.EqualError(t, Append(New("blue"), "big"), "blue: big")
+
+	// wrapper varargs
+	err := Append(New("blue"), "big", WithHTTPCode(3))
+	assert.Equal(t, 3, HTTPCode(err))
+	assert.EqualError(t, err, "blue: big")
+}
+
+func TestAppendf(t *testing.T) {
+	// nil -> nil
+	assert.Nil(t, Appendf(nil, "big %s", "red"))
+
+	// append message
+	assert.EqualError(t, Appendf(New("blue"), "big %s", "red"), "blue: big red")
+
+	// wrapper varargs
+	err := Appendf(New("blue"), "big %s", WithHTTPCode(3), "red")
+	assert.Equal(t, 3, HTTPCode(err))
+	assert.EqualError(t, err, "blue: big red")
+}
+
+func TestPrepend(t *testing.T) {
+	// nil -> nil
+	assert.Nil(t, Prepend(nil, "big"))
+
+	// append message
+	assert.EqualError(t, Prepend(New("blue"), "big"), "big: blue")
+
+	// wrapper varargs
+	err := Prepend(New("blue"), "big", WithHTTPCode(3))
+	assert.Equal(t, 3, HTTPCode(err))
+	assert.EqualError(t, err, "big: blue")
+}
+
+func TestPrependf(t *testing.T) {
+	// nil -> nil
+	assert.Nil(t, Prependf(nil, "big %s", "red"))
+
+	// append message
+	assert.EqualError(t, Prependf(New("blue"), "big %s", "red"), "big red: blue")
+
+	// wrapper varargs
+	err := Prependf(New("blue"), "big %s", WithHTTPCode(3), "red")
+	assert.Equal(t, 3, HTTPCode(err))
+	assert.EqualError(t, err, "big red: blue")
+}
+
 func TestValue(t *testing.T) {
 	// nil -> nil
 	assert.Nil(t, Value(nil, "color"))

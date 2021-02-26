@@ -49,29 +49,29 @@ func TestWrappers(t *testing.T) {
 			},
 		},
 		{
-			name:    "Append",
-			wrapper: Append("boom"),
+			name:    "AppendMessage",
+			wrapper: AppendMessage("boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "bang: boom")
 			},
 		},
 		{
-			name:    "Appendf",
-			wrapper: Appendf("%s %s", "big", "boom"),
+			name:    "AppendMessagef",
+			wrapper: AppendMessagef("%s %s", "big", "boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "bang: big boom")
 			},
 		},
 		{
-			name:    "Prepend",
-			wrapper: Prepend("boom"),
+			name:    "PrependMessage",
+			wrapper: PrependMessage("boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "boom: bang")
 			},
 		},
 		{
-			name:    "Prependf",
-			wrapper: Prependf("%s %s", "big", "boom"),
+			name:    "PrependMessagef",
+			wrapper: PrependMessagef("%s %s", "big", "boom"),
 			assertions: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "big boom: bang")
 			},

@@ -104,7 +104,7 @@ func TestErrImpl_As(t *testing.T) {
 
 	// test that it works with non-merry errors in the chain
 	w := &UnwrapperError{err: e2}
-	e3 := Wrap(w, Prepend("asdf"))
+	e3 := Wrap(w, PrependMessage("asdf"))
 
 	rerr = nil
 

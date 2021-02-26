@@ -15,6 +15,12 @@ func New(msg string, wrappers ...Wrapper) error {
 // Errorf creates a new error with a formatted message and a stack.  The equivalent of golang's fmt.Errorf().
 // args may contain either arguments to format, or Wrapper options, which will be applied to the error.
 func Errorf(format string, args ...interface{}) error {
+	fmtArgs, wrappers := splitWrappers(args)
+
+	return WrapSkipping(fmt.Errorf(format, fmtArgs...), 1, wrappers...)
+}
+
+func splitWrappers(args []interface{}) ([]interface{}, []Wrapper) {
 	var wrappers []Wrapper
 
 	// pull out the args which are wrappers
@@ -29,7 +35,7 @@ func Errorf(format string, args ...interface{}) error {
 	}
 	args = args[:n]
 
-	return WrapSkipping(fmt.Errorf(format, args...), 1, wrappers...)
+	return args, wrappers
 }
 
 // Wrap adds context to errors by applying Wrappers.  See WithXXX() functions for Wrappers supplied
@@ -60,6 +66,34 @@ func WrapSkipping(err error, skip int, wrappers ...Wrapper) error {
 	}
 
 	return captureStack(err, skip+1, false)
+}
+
+// Prepend is a convenience function for the PrependMessage wrapper.  It eases migration
+// from merry v1.  It accepts a varargs of additional Wrappers.
+func Prepend(err error, msg string, wrappers ...Wrapper) error {
+	return WrapSkipping(err, 1, append(wrappers, PrependMessage(msg))...)
+}
+
+// Prependf is a convenience function for the PrependMessagef wrapper.  It eases migration
+// from merry v1.  The args can be format arguments mixed with Wrappers.
+func Prependf(err error, format string, args ...interface{}) error {
+	fmtArgs, wrappers := splitWrappers(args)
+
+	return WrapSkipping(err, 1, append(wrappers, PrependMessagef(format, fmtArgs...))...)
+}
+
+// Append is a convenience function for the AppendMessage wrapper.  It eases migration
+// from merry v1.  It accepts a varargs of additional Wrappers.
+func Append(err error, msg string, wrappers ...Wrapper) error {
+	return WrapSkipping(err, 1, append(wrappers, AppendMessage(msg))...)
+}
+
+// Appendf is a convenience function for the AppendMessagef wrapper.  It eases migration
+// from merry v1.  The args can be format arguments mixed with Wrappers.
+func Appendf(err error, format string, args ...interface{}) error {
+	fmtArgs, wrappers := splitWrappers(args)
+
+	return WrapSkipping(err, 1, append(wrappers, AppendMessagef(format, fmtArgs...))...)
 }
 
 // Value returns the value for key, or nil if not set.
