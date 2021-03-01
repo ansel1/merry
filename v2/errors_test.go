@@ -37,6 +37,30 @@ func TestErrorf(t *testing.T) {
 	assert.Equal(t, 5, HTTPCode(err))
 }
 
+func TestSentinel(t *testing.T) {
+	err := Sentinel("boom", WithHTTPCode(5))
+	assert.EqualError(t, err, "boom")
+	assert.Equal(t, 5, HTTPCode(err))
+	assert.Nil(t, Stack(err))
+
+	_, _, rl, _ := runtime.Caller(0)
+	err = Wrap(err)
+	_, l := Location(err)
+	assert.Equal(t, rl+1, l)
+}
+
+func TestSentinelf(t *testing.T) {
+	err := Sentinelf("%s %s boom", "big", WithHTTPCode(5), "blue")
+	assert.EqualError(t, err, "big blue boom")
+	assert.Equal(t, 5, HTTPCode(err))
+	assert.Nil(t, Stack(err))
+
+	_, _, rl, _ := runtime.Caller(0)
+	err = Wrap(err)
+	_, l := Location(err)
+	assert.Equal(t, rl+1, l)
+}
+
 func TestWrap(t *testing.T) {
 	// capture a stack
 	ogerr := errors.New("boom")
