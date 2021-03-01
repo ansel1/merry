@@ -158,11 +158,6 @@ func TestFromError(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, "blue", s.Message())
 	assert.Equal(t, codes.Unauthenticated, s.Code())
-
-	// should have a LocalizedMessage detail and a DebugInfo detail
-	details := s.Details()
-	mapstest.AssertContains(t, details, &errdetails.LocalizedMessage{Message: "hi"})
-	mapstest.AssertContains(t, details, &errdetails.DebugInfo{StackEntries: merry.FormattedStack(err)})
 }
 
 func TestConvert(t *testing.T) {

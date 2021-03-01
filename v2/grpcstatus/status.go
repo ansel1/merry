@@ -85,12 +85,7 @@ func FromError(err error) (s *Status, ok bool) {
 	}
 
 	// construct new status from error
-	s = New(Code(err), err.Error())
-	if s1, err := s.WithDetails(DetailsFromError(err)...); err == nil {
-		s = s1
-	}
-
-	return s, false
+	return New(Code(err), err.Error()), false
 }
 
 // Convert is a convenience function which removes the need to handle the
