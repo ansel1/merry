@@ -205,9 +205,14 @@ func TestValue(t *testing.T) {
 	err = Wrap(err, WithUserMessage("yikes"))
 	assert.Equal(t, "red", Value(err, "color"))
 
-	// will not traverse causes
+	// will traverse cause chain
 	err = New("whoops", WithCause(err))
-	assert.Equal(t, nil, Value(err, "color"))
+	err = New("yikes", WithCause(err))
+	assert.Equal(t, "red", Value(err, "color"))
+
+	// if cause is overridden, will only traverse the latest cause
+	err = Wrap(err, WithCause(errors.New("new cause")))
+	assert.Nil(t, Value(err, "color"))
 }
 
 func TestValues(t *testing.T) {

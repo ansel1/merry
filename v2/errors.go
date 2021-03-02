@@ -212,8 +212,11 @@ func UserMessage(err error) string {
 // Cause returns the cause of the argument.  If e is nil, or has no cause,
 // nil is returned.
 func Cause(err error) error {
-	cause, _ := Value(err, errKeyCause).(error)
-	return cause
+	var causer *errWithCause
+	if internal.As(err, &causer) {
+		return causer.cause
+	}
+	return nil
 }
 
 // captureStack: return an error with a stack attached.  Stack will skip

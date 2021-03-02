@@ -152,7 +152,12 @@ func CaptureStack(force bool) Wrapper {
 // from lower API levels with sentinel errors in higher API levels.  errors.Is() and errors.As()
 // will traverse both the main chain of error wrappers, as well as down the chain of causes.
 func WithCause(err error) Wrapper {
-	return WithValue(errKeyCause, err)
+	return WrapperFunc(func(nerr error, _ int) error {
+		if nerr == nil {
+			return nil
+		}
+		return &errWithCause{err: nerr, cause: err}
+	})
 }
 
 // Set wraps an error with a key/value pair.  This is the simplest form of associating

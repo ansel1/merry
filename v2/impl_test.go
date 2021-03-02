@@ -80,6 +80,11 @@ func TestErrImpl_Is(t *testing.T) {
 	assert.True(t, internal.Is(outererr1, outererr))
 	assert.True(t, internal.Is(outererr1, rootCause1))
 	assert.True(t, internal.Is(outererr1, rootCause))
+
+	// but only the latest cause
+	outererr1 = Wrap(outererr1, WithCause(errors.New("new cause")))
+	assert.False(t, internal.Is(outererr1, rootCause))
+	assert.False(t, internal.Is(outererr1, rootCause1))
 }
 
 type redError int
@@ -89,32 +94,44 @@ func (*redError) Error() string {
 }
 
 func TestErrImpl_As(t *testing.T) {
-	e1 := New("blue error")
+	err := New("blue error")
 
 	// as will find matching errors in the chain
 	var rerr *redError
-	assert.False(t, internal.As(e1, &rerr))
+	assert.False(t, internal.As(err, &rerr))
 	assert.Nil(t, rerr)
 
 	rr := redError(3)
-	e2 := Wrap(&rr)
+	err = Wrap(&rr)
 
-	assert.True(t, internal.As(e2, &rerr))
+	assert.True(t, internal.As(err, &rerr))
 	assert.Equal(t, &rr, rerr)
+
+	rerr = nil
 
 	// test that it works with non-merry errors in the chain
-	w := &UnwrapperError{err: e2}
-	e3 := Wrap(w, PrependMessage("asdf"))
+	err = &UnwrapperError{err: err}
+	assert.True(t, internal.As(err, &rerr))
+	assert.Equal(t, &rr, rerr)
+
+	err = Wrap(err, PrependMessage("asdf"))
 
 	rerr = nil
 
-	assert.True(t, internal.As(e3, &rerr))
+	assert.True(t, internal.As(err, &rerr))
 	assert.Equal(t, &rr, rerr)
+
+	// will search causes as well
+	err = New("boom", WithCause(err))
 
 	rerr = nil
 
-	assert.True(t, internal.As(w, &rerr))
+	assert.True(t, internal.As(err, &rerr))
 	assert.Equal(t, &rr, rerr)
+
+	// but only the latest cause
+	err = Wrap(err, WithCause(errors.New("new cause")))
+	assert.False(t, internal.As(err, &rerr))
 }
 
 func TestErrImpl_String(t *testing.T) {
