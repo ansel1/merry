@@ -85,7 +85,7 @@ func TestWrap(t *testing.T) {
 	count := 0
 	err1 := err
 	for err1 != nil {
-		if impl, ok := err.(*errImpl); ok {
+		if impl, ok := err.(*errWithValue); ok {
 			if impl.key == errKeyStack {
 				count++
 			}
@@ -125,7 +125,7 @@ func TestWrapSkipping(t *testing.T) {
 	count := 0
 	err1 := err
 	for err1 != nil {
-		if impl, ok := err.(*errImpl); ok {
+		if impl, ok := err.(*errWithValue); ok {
 			if impl.key == errKeyStack {
 				count++
 			}
@@ -205,14 +205,17 @@ func TestValue(t *testing.T) {
 	err = Wrap(err, WithUserMessage("yikes"))
 	assert.Equal(t, "red", Value(err, "color"))
 
-	// will traverse cause chain
-	err = New("whoops", WithCause(err))
-	err = New("yikes", WithCause(err))
-	assert.Equal(t, "red", Value(err, "color"))
-
-	// if cause is overridden, will only traverse the latest cause
-	err = Wrap(err, WithCause(errors.New("new cause")))
+	// will not search the cause chain
+	err = New("whoops", WithCause(New("yikes", WithValue("color", "red"))))
 	assert.Nil(t, Value(err, "color"))
+
+	// if the current error and the cause both have a value for the
+	// same key, the top errors value will always take precedence, even
+	// if the cause was attached to the error after the value was.
+
+	err = New("boom", WithValue("color", "red"))
+	err = Wrap(err, WithCause(New("io error", WithValue("color", "blue"))))
+	assert.Equal(t, "red", Value(err, "color"))
 }
 
 func TestValues(t *testing.T) {

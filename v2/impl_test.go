@@ -8,33 +8,56 @@ import (
 	"testing"
 )
 
-func TestErrImpl_Format(t *testing.T) {
+func TestErrWithValue_Format(t *testing.T) {
 	// %v and %s print the same as err.Error() if there is no cause
-	e := New("Hi")
-	assert.Equal(t, fmt.Sprintf("%v", e), e.Error())
-	assert.Equal(t, fmt.Sprintf("%s", e), e.Error())
+	err := &errWithValue{err: errors.New("Hi")}
+	assert.IsType(t, &errWithValue{}, err)
+	assert.Equal(t, fmt.Sprintf("%v", err), err.Error())
+	assert.Equal(t, fmt.Sprintf("%s", err), err.Error())
 
-	// %q returns e.Error() as a golang literal
-	assert.Equal(t, fmt.Sprintf("%q", e), fmt.Sprintf("%q", e.Error()))
+	// %q returns err.Error() as a golang literal
+	assert.Equal(t, fmt.Sprintf("%q", err), fmt.Sprintf("%q", err.Error()))
 
-	// %v and %s also print the cause, if there is one
-	e = New("Bye", WithCause(e))
-	assert.Equal(t, fmt.Sprintf("%v", e), "Bye: Hi")
-	assert.Equal(t, fmt.Sprintf("%s", e), "Bye: Hi")
+	// if there is a cause in the chain, include it.
+	err = Wrap(err, WithCause(New("Bye")), WithValue("color", "red")).(*errWithValue)
+	assert.Equal(t, fmt.Sprintf("%v", err), "Hi: Bye")
+	assert.Equal(t, fmt.Sprintf("%s", err), "Hi: Bye")
 
 	// %+v should return full details, including properties registered with RegisterXXX() functions
 	// and the stack.
-	e = Wrap(e, WithUserMessage("blue"))
-	assert.Equal(t, fmt.Sprintf("%+v", e), Details(e))
+	err = Wrap(err, WithUserMessage("blue")).(*errWithValue)
+	assert.Equal(t, fmt.Sprintf("%+v", err), Details(err))
 }
 
-func TestErrImpl_Error(t *testing.T) {
-	err := errors.New("red")
+func TestErrWithCause_Format(t *testing.T) {
+	// %v and %s also print the cause, if there is one
+	err := &errWithCause{err: New("Hi"), cause: New("Bye")}
+	// make sure we have an errWithCause here, to ensure that it also implements
+	// fmt.Formatter
+	assert.IsType(t, &errWithCause{}, err)
+	assert.Equal(t, fmt.Sprintf("%v", err), "Hi: Bye")
+	assert.Equal(t, fmt.Sprintf("%s", err), "Hi: Bye")
+
+	// %q returns err.Error() as a golang literal
+	assert.Equal(t, fmt.Sprintf("%q", err), fmt.Sprintf("%q", err.Error()))
+
+	// %+v should return full details, including properties registered with RegisterXXX() functions
+	// and the stack.
+	assert.Equal(t, fmt.Sprintf("%+v", err), Details(err))
+}
+
+func TestErrWithValue_Error(t *testing.T) {
+	err := &errWithValue{err: errors.New("red")}
 
 	assert.Equal(t, "red", err.Error())
 
-	err = Wrap(err, WithMessage("blue"))
+	err = Wrap(err, WithMessage("blue")).(*errWithValue)
 
+	assert.Equal(t, "blue", err.Error())
+}
+
+func TestErrWithCause_Error(t *testing.T) {
+	err := &errWithCause{err: errors.New("blue"), cause: errors.New("red")}
 	assert.Equal(t, "blue", err.Error())
 }
 
@@ -52,12 +75,50 @@ func (w *UnwrapperError) Unwrap() error {
 	return w.err
 }
 
-func TestErrImpl_Unwrap(t *testing.T) {
-	e1 := &errImpl{err: errors.New("blue"), key: "color", value: "red"}
+func TestErrWithValue_Unwrap(t *testing.T) {
+	e1 := &errWithValue{err: errors.New("blue"), key: "color", value: "red"}
 	assert.EqualError(t, e1.Unwrap(), "blue")
 }
 
-func TestErrImpl_Is(t *testing.T) {
+func TestErrWithCause_Unwrap(t *testing.T) {
+	topErr := Sentinel("blue", WithMessage("green"))
+	err := &errWithCause{err: topErr, cause: errors.New("red")}
+
+	// unwrapping the layers should return green, then blue, then the cause (red).
+	// first unwrap should return blue
+	var layers []string
+	var unwrapped error = err
+	for unwrapped != nil {
+		layers = append(layers, unwrapped.Error())
+		unwrapped = errors.Unwrap(unwrapped)
+	}
+	// first error in chain should be the errWithCause wrapping
+	// the green error.  Unwrapping should produce an errWithCause
+	// wrapping the blue error,  Unwrapping again should produce the cause.
+	assert.Equal(t, []string{"green", "blue", "red"}, layers)
+
+	// if another cause is attached, it should override the older cause.  The older
+	// cause should no longer be returned by Unwrap.
+	unwrapped = &errWithCause{err: err, cause: errors.New("yellow")}
+	layers = nil
+	for unwrapped != nil {
+		layers = append(layers, unwrapped.Error())
+		unwrapped = errors.Unwrap(unwrapped)
+	}
+	assert.Equal(t, []string{"green", "blue", "yellow"}, layers)
+}
+
+func TestErrWithValue_String(t *testing.T) {
+	err := New("blue")
+	assert.Equal(t, "blue", err.(*errWithValue).String())
+	assert.Equal(t, "red", Wrap(err, WithMessage("red")).(*errWithValue).String())
+}
+
+func TestErrWithCause_String(t *testing.T) {
+	assert.Equal(t, "blue", (&errWithCause{err: errors.New("blue")}).String())
+}
+
+func TestIs(t *testing.T) {
 	// an error is all the errors it wraps
 	e1 := New("blue")
 	e2 := Wrap(e1, WithHTTPCode(5))
@@ -82,9 +143,11 @@ func TestErrImpl_Is(t *testing.T) {
 	assert.True(t, internal.Is(outererr1, rootCause))
 
 	// but only the latest cause
-	outererr1 = Wrap(outererr1, WithCause(errors.New("new cause")))
-	assert.False(t, internal.Is(outererr1, rootCause))
-	assert.False(t, internal.Is(outererr1, rootCause1))
+	newCause := errors.New("new cause")
+	outererr1 = Wrap(outererr1, WithCause(newCause))
+	assert.ErrorIs(t, outererr1, newCause)
+	assert.NotErrorIs(t, outererr1, rootCause)
+	assert.NotErrorIs(t, outererr1, rootCause1)
 }
 
 type redError int
@@ -93,7 +156,7 @@ func (*redError) Error() string {
 	return "red error"
 }
 
-func TestErrImpl_As(t *testing.T) {
+func TestAs(t *testing.T) {
 	err := New("blue error")
 
 	// as will find matching errors in the chain
@@ -132,8 +195,4 @@ func TestErrImpl_As(t *testing.T) {
 	// but only the latest cause
 	err = Wrap(err, WithCause(errors.New("new cause")))
 	assert.False(t, internal.As(err, &rerr))
-}
-
-func TestErrImpl_String(t *testing.T) {
-	assert.Equal(t, "blue", New("blue").(*errImpl).String())
 }

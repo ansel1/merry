@@ -123,7 +123,7 @@ func WithStack(stack []uintptr) Wrapper {
 // instead, and takes precedence over the raw stack.  This is useful if pre-formatted
 // stack information is coming from some other source.
 func WithFormattedStack(stack []string) Wrapper {
-	return WithValue(errKeyFormattedStack, stack)
+	return WithValue(errKeyStack, stack)
 }
 
 // NoCaptureStack will suppress capturing a stack, even if StackCaptureEnabled() == true.
@@ -175,7 +175,7 @@ func Set(err error, key, value interface{}) error {
 	if err == nil {
 		return nil
 	}
-	return &errImpl{
+	return &errWithValue{
 		err:   err,
 		key:   key,
 		value: value,

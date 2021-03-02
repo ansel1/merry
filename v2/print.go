@@ -37,7 +37,7 @@ func SourceLine(err error) string {
 //
 // Returns nil if no formatted stack and no stack is associated, or err is nil.
 func FormattedStack(err error) []string {
-	formattedStack, _ := Value(err, errKeyFormattedStack).([]string)
+	formattedStack, _ := Value(err, errKeyStack).([]string)
 	if len(formattedStack) > 0 {
 		return formattedStack
 	}

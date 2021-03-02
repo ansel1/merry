@@ -141,20 +141,64 @@ func Appendf(err error, format string, args ...interface{}) error {
 }
 
 // Value returns the value for key, or nil if not set.
-// If e is nil, returns nil.
+// If e is nil, returns nil.  Will not search causes.
 func Value(err error, key interface{}) interface{} {
-	for err != nil {
-		if impl, ok := err.(*errImpl); ok {
-			if impl.key == key {
-				return impl.value
-			}
-			err = impl.err
-		} else {
-			err = internal.Unwrap(err)
-		}
+	v, _ := Lookup(err, key)
+	return v
+}
+
+// Lookup returns the value for the key, and a boolean indicating
+// whether the value was set.  Will not search causes.
+//
+// if err is nil, returns nil and false.
+func Lookup(err error, key interface{}) (interface{}, bool) {
+	var merr interface {
+		error
+		isMerryError()
 	}
 
-	return nil
+	// I've tried implementing this logic a few different ways.  It's tricky:
+	//
+	// - Lookup should only search the current error, but not causes.  errWithCause's
+	//   Unwrap() will eventually unwrap to the cause, so we don't want to just
+	//   search the entire stream of errors returned by Unwrap.
+	// - We need to handle cases where error implementations created outside
+	//   this package are in the middle of the chain.  We need to use Unwrap
+	//   in these cases to traverse those errors and dig down to the next
+	//   merry error.
+	// - Some error packages, including our own, do funky stuff with Unwrap(),
+	//   returning shims types to control the unwrapping order, rather than
+	//   the actual, raw wrapped error.  Typically, these shims implement
+	//   Is/As to delegate to the raw error they encapsulate, but implement
+	//   Unwrap by encapsulating the raw error in another shim.  So if we're looking
+	//   for a raw error type, we can't just use Unwrap() and do type assertions
+	//   against the result.  We have to use errors.As(), to allow the shims to delegate
+	//   the type assertion to the raw error correctly.
+	//
+	// Based on all these constraints, we use errors.As() with an internal interface
+	// that can only be implemented by our internal error types.  When one is found,
+	// we handle each of our internal types as a special case.  For errWithCause, we
+	// traverse to the wrapped error, ignoring the cause and the funky Unwrap logic.
+	// We could have just used errors.As(err, *errWithValue), but that would have
+	// traversed into the causes.
+
+	for {
+		switch t := err.(type) {
+		case *errWithValue:
+			if t.key == key {
+				return t.value, true
+			}
+			err = t.err
+		case *errWithCause:
+			err = t.err
+		default:
+			if errors.As(err, &merr) {
+				err = merr
+			} else {
+				return nil, false
+			}
+		}
+	}
 }
 
 // Values returns a map of all values attached to the error
@@ -164,8 +208,34 @@ func Value(err error, key interface{}) interface{} {
 func Values(err error) map[interface{}]interface{} {
 	var values map[interface{}]interface{}
 
+	var merr interface {
+		error
+		isMerryError()
+	}
+
+	for {
+		switch t := err.(type) {
+		case *errWithValue:
+			if _, ok := values[t.key]; !ok {
+				if values == nil {
+					values = map[interface{}]interface{}{}
+				}
+				values[t.key] = t.value
+			}
+			err = t.err
+		case *errWithCause:
+			err = t.err
+		default:
+			if errors.As(err, &merr) {
+				err = merr
+			} else {
+				return values
+			}
+		}
+	}
+
 	for err != nil {
-		if e, ok := err.(*errImpl); ok {
+		if e, ok := err.(*errWithValue); ok {
 			if _, ok := values[e.key]; !ok {
 				if values == nil {
 					values = map[interface{}]interface{}{}
@@ -244,15 +314,6 @@ func captureStack(err error, skip int, force bool) error {
 // still return true, indicating that stack capture processing has already
 // occurred on this error.
 func HasStack(err error) bool {
-	for err != nil {
-		if e, ok := err.(*errImpl); ok {
-			if e.key == errKeyStack || e.key == errKeyFormattedStack {
-				return true
-			}
-			err = e.err
-		} else {
-			err = internal.Unwrap(err)
-		}
-	}
-	return false
+	_, ok := Lookup(err, errKeyStack)
+	return ok
 }
