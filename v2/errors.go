@@ -192,7 +192,7 @@ func Lookup(err error, key interface{}) (interface{}, bool) {
 		case *errWithCause:
 			err = t.err
 		default:
-			if errors.As(err, &merr) {
+			if internal.As(err, &merr) {
 				err = merr
 			} else {
 				return nil, false
@@ -226,7 +226,7 @@ func Values(err error) map[interface{}]interface{} {
 		case *errWithCause:
 			err = t.err
 		default:
-			if errors.As(err, &merr) {
+			if internal.As(err, &merr) {
 				err = merr
 			} else {
 				return values
