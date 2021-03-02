@@ -1,8 +1,8 @@
 package merry
 
 import (
-	"errors"
 	"fmt"
+	"github.com/ansel1/merry/v2/internal"
 	"io"
 	"reflect"
 	"strings"
@@ -114,7 +114,7 @@ func (e *errWithCause) Unwrap() error {
 	if e1, ok := e.err.(*errWithCause); ok {
 		nextErr = e1.err
 	} else {
-		nextErr = errors.Unwrap(e.err)
+		nextErr = internal.Unwrap(e.err)
 	}
 	if nextErr == nil {
 		return e.cause
