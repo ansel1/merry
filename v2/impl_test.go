@@ -81,7 +81,7 @@ func TestErrWithValue_Unwrap(t *testing.T) {
 }
 
 func TestErrWithCause_Unwrap(t *testing.T) {
-	topErr := Sentinel("blue", WithMessage("green"))
+	topErr := Apply(errors.New("blue"), WithMessage("green"))
 	err := &errWithCause{err: topErr, cause: errors.New("red")}
 
 	// unwrapping the layers should return green, then blue, then the cause (red).

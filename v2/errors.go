@@ -20,35 +20,6 @@ func Errorf(format string, args ...interface{}) error {
 	return WrapSkipping(fmt.Errorf(format, fmtArgs...), 1, wrappers...)
 }
 
-// Sentinel creates an error without running hooks or capturing a stack.  It is intended
-// to create sentinel errors, which will be wrapped with a stack later from where the
-// error is returned.  At that time, a stack will be captured and hooks will be run.
-//
-//     var ErrNotFound = merry.Sentinel("not found", merry.WithHTTPCode(404))
-//
-//     func FindUser(name string) (*User, error) {
-//       // some db code which fails to find a user
-//       return nil, merry.Wrap(ErrNotFound)
-//     }
-//
-//     func main() {
-//       _, err := FindUser("bob")
-//       fmt.Println(errors.Is(err, ErrNotFound) // "true"
-//       fmt.Println(merry.Details(err))         // stacktrace will start at the return statement
-//                                               // in FindUser()
-//     }
-func Sentinel(msg string, wrappers ...Wrapper) error {
-	return apply(errors.New(msg), 1, false, false, wrappers...)
-}
-
-// Sentinelf is like Sentinel, but takes a formatted message.  args can be a mix of
-// format arguments and Wrappers.
-func Sentinelf(format string, args ...interface{}) error {
-	fmtArgs, wrappers := splitWrappers(args)
-
-	return apply(fmt.Errorf(format, fmtArgs...), 1, false, false, wrappers...)
-}
-
 func splitWrappers(args []interface{}) ([]interface{}, []Wrapper) {
 	var wrappers []Wrapper
 
@@ -82,7 +53,32 @@ func Wrap(err error, wrappers ...Wrapper) error {
 // WrapSkipping is like Wrap, but the captured stacks will start `skip` frames
 // further up the call stack.  If skip is 0, it behaves the same as Wrap.
 func WrapSkipping(err error, skip int, wrappers ...Wrapper) error {
-	return apply(err, skip+1, true, true, wrappers...)
+	if err == nil {
+		return nil
+	}
+
+	err = ApplySkipping(err, skip+1, hooks...)
+	err = ApplySkipping(err, skip+1, wrappers...)
+	return captureStack(err, skip+1, false)
+}
+
+// Apply is like Wrap, but does not execute hooks or do automatic stack capture.  It just
+// applies the wrappers to the error.
+func Apply(err error, wrappers ...Wrapper) error {
+	return ApplySkipping(err, 1, wrappers...)
+}
+
+// ApplySkipping is like WrapSkipping, but does not execute hooks or do automatic stack capture.  It just
+// applies the wrappers to the error.
+func ApplySkipping(err error, skip int, wrappers ...Wrapper) error {
+	if err == nil {
+		return nil
+	}
+
+	for _, w := range wrappers {
+		err = w.Wrap(err, skip+1)
+	}
+	return err
 }
 
 // apply wraps an error with wrappers, and optionally applies hooks and ensures
