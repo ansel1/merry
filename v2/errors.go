@@ -57,6 +57,12 @@ func WrapSkipping(err error, skip int, wrappers ...Wrapper) error {
 		return nil
 	}
 
+	if len(onceHooks) > 0 {
+		if _, ok := Lookup(err, errKeyHooked); !ok {
+			err = ApplySkipping(err, skip+1, onceHooks...)
+			err = ApplySkipping(err, skip+1, WithValue(errKeyHooked, err))
+		}
+	}
 	err = ApplySkipping(err, skip+1, hooks...)
 	err = ApplySkipping(err, skip+1, wrappers...)
 	return captureStack(err, skip+1, false)

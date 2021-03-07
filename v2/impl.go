@@ -17,6 +17,7 @@ const (
 	errKeyHTTPCode
 	errKeyUserMessage
 	errKeyForceCapture
+	errKeyHooked
 )
 
 func (e errKey) String() string {
