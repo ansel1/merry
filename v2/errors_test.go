@@ -37,19 +37,34 @@ func TestErrorf(t *testing.T) {
 	assert.Equal(t, 5, HTTPCode(err))
 }
 
+func TestSentinel(t *testing.T) {
+	err := Sentinel("boom", WithHTTPCode(5), WrapperFunc(func(err error, depth int) error {
+		assert.Equal(t, 3, depth)
+		return err
+	}))
+	assert.EqualError(t, err, "boom")
+
+	assertSentinel(t, err)
+}
+
+func TestSentinelf(t *testing.T) {
+	err := Sentinelf("%s %s boom", "big", WithHTTPCode(5), "blue", WrapperFunc(func(err error, depth int) error {
+		assert.Equal(t, 3, depth)
+		return err
+	}))
+	assert.EqualError(t, err, "big blue boom")
+
+	assertSentinel(t, err)
+}
+
 func TestApply(t *testing.T) {
 	err := Apply(errors.New("boom"), WithHTTPCode(5), WrapperFunc(func(err error, depth int) error {
 		assert.Equal(t, 3, depth)
 		return err
 	}))
 	assert.EqualError(t, err, "boom")
-	assert.Equal(t, 5, HTTPCode(err))
-	assert.Nil(t, Stack(err))
 
-	_, _, rl, _ := runtime.Caller(0)
-	err = Wrap(err)
-	_, l := Location(err)
-	assert.Equal(t, rl+1, l)
+	assertSentinel(t, err)
 }
 
 func TestApplySkipping(t *testing.T) {
@@ -58,6 +73,13 @@ func TestApplySkipping(t *testing.T) {
 		return err
 	}))
 	assert.EqualError(t, err, "boom")
+
+	assertSentinel(t, err)
+}
+
+func assertSentinel(t *testing.T, err error) {
+	t.Helper()
+
 	assert.Equal(t, 5, HTTPCode(err))
 	assert.Nil(t, Stack(err))
 

@@ -20,6 +20,35 @@ func Errorf(format string, args ...interface{}) error {
 	return WrapSkipping(fmt.Errorf(format, fmtArgs...), 1, wrappers...)
 }
 
+// Sentinel creates an error without running hooks or capturing a stack.  It is intended
+// to create sentinel errors, which will be wrapped with a stack later from where the
+// error is returned.  At that time, a stack will be captured and hooks will be run.
+//
+//     var ErrNotFound = merry.Sentinel("not found", merry.WithHTTPCode(404))
+//
+//     func FindUser(name string) (*User, error) {
+//       // some db code which fails to find a user
+//       return nil, merry.Wrap(ErrNotFound)
+//     }
+//
+//     func main() {
+//       _, err := FindUser("bob")
+//       fmt.Println(errors.Is(err, ErrNotFound) // "true"
+//       fmt.Println(merry.Details(err))         // stacktrace will start at the return statement
+//                                               // in FindUser()
+//     }
+func Sentinel(msg string, wrappers ...Wrapper) error {
+	return ApplySkipping(errors.New(msg), 1, wrappers...)
+}
+
+// Sentinelf is like Sentinel, but takes a formatted message.  args can be a mix of
+// format arguments and Wrappers.
+func Sentinelf(format string, args ...interface{}) error {
+	fmtArgs, wrappers := splitWrappers(args)
+
+	return ApplySkipping(fmt.Errorf(format, fmtArgs...), 1, wrappers...)
+}
+
 func splitWrappers(args []interface{}) ([]interface{}, []Wrapper) {
 	var wrappers []Wrapper
 
@@ -84,33 +113,6 @@ func ApplySkipping(err error, skip int, wrappers ...Wrapper) error {
 	for _, w := range wrappers {
 		err = w.Wrap(err, skip+1)
 	}
-	return err
-}
-
-// apply wraps an error with wrappers, and optionally applies hooks and ensures
-// the error has a stack.  This is a low-level API intended for granular control
-// over how the error is processed.
-//
-// todo: consider making public
-func apply(err error, skip int, applyHooks, autocapture bool, wrappers ...Wrapper) error {
-	if err == nil {
-		return nil
-	}
-
-	if applyHooks {
-		for _, h := range hooks {
-			err = h.Wrap(err, skip+1)
-		}
-	}
-
-	for _, w := range wrappers {
-		err = w.Wrap(err, skip+1)
-	}
-
-	if autocapture {
-		err = captureStack(err, skip+1, false)
-	}
-
 	return err
 }
 

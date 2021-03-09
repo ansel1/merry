@@ -1,7 +1,10 @@
 # Expands to list this project's go packages, excluding the vendor folder
 SHELL = bash
 
-all: fmt build test lint
+all: fmt build test lint v2
+
+v2:
+	$(MAKE) -C v2
 
 build:
 	go build
@@ -34,5 +37,5 @@ tools:
 	go get -u golang.org/x/tools/cmd/cover
 	go get -u golang.org/x/lint/golint
 
-.PHONY: all build lint clean fmt test coverage tools
+.PHONY: all build lint clean fmt test coverage tools v2
 
