@@ -27,8 +27,6 @@ jobs:
         run: |
           export PATH=$PATH:$GOPATH/bin
           make tools all
-          cd v2
-          make tools all
   buildold:
     env:
       GOPATH: ${{ github.workspace }}
@@ -51,8 +49,5 @@ jobs:
       - name: Build
         run: |
           export PATH=$PATH:$GOPATH/bin
-          go get ./...
-          go build ./...
-          cd v2
           go get ./...
           go build ./...
