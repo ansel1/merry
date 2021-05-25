@@ -2,6 +2,7 @@ package merry
 
 import (
 	"fmt"
+	"io"
 	"path"
 	"runtime"
 	"sort"
@@ -105,4 +106,39 @@ func Details(e error) string {
 	}
 
 	return msg
+}
+
+// Format adapts errors to fmt.Formatter interface.  It's intended to be used
+// help error impls implement fmt.Formatter, e.g.:
+//
+//     func (e *myErr) Format(f fmt.State, verb rune) {
+//	     Format(f, verb, e)
+//     }
+//
+func Format(s fmt.State, verb rune, err error) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			io.WriteString(s, Details(err))
+			return
+		}
+		fallthrough
+	case 's':
+		io.WriteString(s, msgWithCauses(err))
+	case 'q':
+		fmt.Fprintf(s, "%q", err.Error())
+	}
+}
+
+func msgWithCauses(err error) string {
+	messages := make([]string, 0, 5)
+
+	for err != nil {
+		if ce := err.Error(); ce != "" {
+			messages = append(messages, ce)
+		}
+		err = Cause(err)
+	}
+
+	return strings.Join(messages, ": ")
 }

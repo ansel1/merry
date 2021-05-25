@@ -3,9 +3,7 @@ package merry
 import (
 	"fmt"
 	"github.com/ansel1/merry/v2/internal"
-	"io"
 	"reflect"
-	"strings"
 )
 
 type errKey int
@@ -46,7 +44,7 @@ type errWithValue struct {
 
 // Format implements fmt.Formatter
 func (e *errWithValue) Format(s fmt.State, verb rune) {
-	format(s, verb, e)
+	Format(s, verb, e)
 }
 
 // Error implements golang's error interface
@@ -119,7 +117,7 @@ func (e *errWithCause) Error() string {
 }
 
 func (e *errWithCause) Format(f fmt.State, verb rune) {
-	format(f, verb, e)
+	Format(f, verb, e)
 }
 
 func (e *errWithCause) Is(target error) bool {
@@ -161,31 +159,3 @@ func (e *errWithCause) As(target interface{}) bool {
 
 // isMerryError is a marker method for identifying error types implemented by this package.
 func (e *errWithCause) isMerryError() {}
-
-func format(s fmt.State, verb rune, err error) {
-	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			io.WriteString(s, Details(err))
-			return
-		}
-		fallthrough
-	case 's':
-		io.WriteString(s, msgWithCauses(err))
-	case 'q':
-		fmt.Fprintf(s, "%q", err.Error())
-	}
-}
-
-func msgWithCauses(err error) string {
-	messages := make([]string, 0, 5)
-
-	for err != nil {
-		if ce := err.Error(); ce != "" {
-			messages = append(messages, ce)
-		}
-		err = Cause(err)
-	}
-
-	return strings.Join(messages, ": ")
-}

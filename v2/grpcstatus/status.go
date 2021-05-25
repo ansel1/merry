@@ -337,6 +337,9 @@ type GRPCStatuser interface {
 	GRPCStatus() *Status
 }
 
+// ensure grpcStatusError implements fmt.Formatter
+var _ fmt.Formatter = (*grpcStatusError)(nil)
+
 type grpcStatusError struct {
 	err    error
 	status *spb.Status
@@ -356,4 +359,8 @@ func (e *grpcStatusError) Unwrap() error {
 
 func (e *grpcStatusError) GRPCStatus() *Status {
 	return FromProto(e.status)
+}
+
+func (e *grpcStatusError) Format(f fmt.State, verb rune) {
+	merry.Format(f, verb, e)
 }
