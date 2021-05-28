@@ -171,7 +171,7 @@ func Lookup(err error, key interface{}) (interface{}, bool) {
 	//   in these cases to traverse those errors and dig down to the next
 	//   merry error.
 	// - Some error packages, including our own, do funky stuff with Unwrap(),
-	//   returning shims types to control the unwrapping order, rather than
+	//   returning shim types to control the unwrapping order, rather than
 	//   the actual, raw wrapped error.  Typically, these shims implement
 	//   Is/As to delegate to the raw error they encapsulate, but implement
 	//   Unwrap by encapsulating the raw error in another shim.  So if we're looking
@@ -211,32 +211,6 @@ func Lookup(err error, key interface{}) (interface{}, bool) {
 // If e is nil, returns nil.
 func Values(err error) map[interface{}]interface{} {
 	var values map[interface{}]interface{}
-
-	var merr interface {
-		error
-		isMerryError()
-	}
-
-	for {
-		switch t := err.(type) {
-		case *errWithValue:
-			if _, ok := values[t.key]; !ok {
-				if values == nil {
-					values = map[interface{}]interface{}{}
-				}
-				values[t.key] = t.value
-			}
-			err = t.err
-		case *errWithCause:
-			err = t.err
-		default:
-			if internal.As(err, &merr) {
-				err = merr
-			} else {
-				return values
-			}
-		}
-	}
 
 	for err != nil {
 		if e, ok := err.(*errWithValue); ok {

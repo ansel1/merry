@@ -19,6 +19,9 @@ fmt:
 test:
 	go test ./...
 
+testall:
+	go test -count 1 ./...
+
 coverage:
 	@if [ ! -d build ]; then mkdir build; fi
 	# runs go test and generate coverage report

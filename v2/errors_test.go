@@ -269,6 +269,20 @@ func TestValues(t *testing.T) {
 	}, values)
 }
 
+func BenchmarkValues(b *testing.B) {
+	// create an error chain with a few values attached, and a non-merry error
+	// in the middle.
+	err := New("boom", WithUserMessage("bam"), WithHTTPCode(4))
+	err = &UnwrapperError{err}
+	err = Wrap(err, WithValue("color", "red"))
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		Values(err)
+	}
+}
+
 func TestStack(t *testing.T) {
 	// nil -> nil
 	assert.Nil(t, Stack(nil))

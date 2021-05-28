@@ -120,6 +120,12 @@ func (e *errWithCause) Format(f fmt.State, verb rune) {
 	Format(f, verb, e)
 }
 
+// errWithCause needs to provide custome implementations of Is and As.
+// errors.Is() doesn't work on errWithCause because error.Is() uses errors.Unwrap() to traverse the error
+// chain.  But errWithCause.Unwrap() doesn't return the next error in the chain.  Instead,
+// it wraps the next error in a shim.  The standard Is/As tests would compare the shim to the target.
+// We need to override Is/As to compare the target to the error inside the shim.
+
 func (e *errWithCause) Is(target error) bool {
 	// This does most of what errors.Is() does, by delegating
 	// to the nested error.  But it does not use Unwrap to recurse
@@ -139,7 +145,7 @@ func (e *errWithCause) Is(target error) bool {
 
 func (e *errWithCause) As(target interface{}) bool {
 	// This does most of what errors.As() does, by delegating
-	// to the nested error.  But it does use Unwrap to recurse
+	// to the nested error.  But it does not use Unwrap to recurse
 	// any further. This just compares target with next error in the stack.
 	val := reflect.ValueOf(target)
 	typ := val.Type()
