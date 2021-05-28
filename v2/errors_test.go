@@ -345,3 +345,13 @@ func TestHasStack(t *testing.T) {
 	assert.True(t, HasStack(New("boom")))
 	assert.True(t, HasStack(New("boom", NoCaptureStack())))
 }
+
+func TestRegisteredDetails(t *testing.T) {
+	// nil -> nil
+	assert.Nil(t, RegisteredDetails(nil))
+
+	assert.Equal(t, dict{"User Message": nil, "HTTP Code": nil}, RegisteredDetails(New("boom")))
+	assert.Equal(t, dict{"User Message": "blue", "HTTP Code": 5}, RegisteredDetails(New("boom", WithUserMessage("blue"), WithHTTPCode(5))))
+}
+
+type dict = map[string]interface{}

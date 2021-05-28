@@ -293,6 +293,27 @@ func Cause(err error) error {
 	return nil
 }
 
+// RegisteredDetails extracts details registered with RegisterDetailFunc from an error, and
+// returns them as a map.  Values may be nil.
+//
+// If err is nil or there are no registered details, nil is returned.
+func RegisteredDetails(err error) map[string]interface{} {
+	detailsLock.Lock()
+	defer detailsLock.Unlock()
+
+	if len(detailFields) == 0 || err == nil {
+		return nil
+	}
+
+	dets := map[string]interface{}{}
+
+	for label, f := range detailFields {
+		dets[label] = f(err)
+	}
+
+	return dets
+}
+
 // captureStack: return an error with a stack attached.  Stack will skip
 // specified frames.  skip = 0 will start at caller.
 // If the err already has a stack, to auto-stack-capture is disabled globally,

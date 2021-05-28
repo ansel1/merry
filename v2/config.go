@@ -1,6 +1,8 @@
 package merry
 
-import "sync"
+import (
+	"sync"
+)
 
 var maxStackDepth = 50
 var captureStacks = true

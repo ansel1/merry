@@ -151,6 +151,14 @@ func Values(err error) map[interface{}]interface{} {
 	return v2.Values(err)
 }
 
+// RegisteredDetails extracts details registered with RegisterDetailFunc from an error, and
+// returns them as a map.  Values may be nil.
+//
+// If err is nil or there are no registered details, nil is returned.
+func RegisteredDetails(err error) map[string]interface{} {
+	return v2.RegisteredDetails(err)
+}
+
 // Here returns an error with a new stacktrace, at the call site of Here().
 // Useful when returning copies of exported package errors.
 // If e is nil, returns nil.
