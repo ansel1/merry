@@ -2,7 +2,6 @@ package merry
 
 import (
 	"errors"
-	"github.com/ansel1/merry/v2/internal"
 	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
@@ -99,7 +98,7 @@ func TestWrap(t *testing.T) {
 	assert.Equal(t, rl+1, l)
 
 	// new error should wrap the old error
-	assert.True(t, internal.Is(err, ogerr))
+	assert.True(t, errors.Is(err, ogerr))
 
 	// wrap accepts wrapper args
 	err = Wrap(err, WithUserMessage("hi"), WithHTTPCode(6))
@@ -118,7 +117,7 @@ func TestWrap(t *testing.T) {
 				count++
 			}
 		}
-		err1 = internal.Unwrap(err1)
+		err1 = errors.Unwrap(err1)
 	}
 
 	// wrapping nil -> nil
@@ -139,7 +138,7 @@ func TestWrapSkipping(t *testing.T) {
 	assert.Equal(t, rl+3, l)
 
 	// new error should wrap the old error
-	assert.True(t, internal.Is(err, ogerr))
+	assert.True(t, errors.Is(err, ogerr))
 
 	// wrap accepts wrapper args
 	err = WrapSkipping(err, 0, WithUserMessage("hi"), WithHTTPCode(6))
@@ -158,7 +157,7 @@ func TestWrapSkipping(t *testing.T) {
 				count++
 			}
 		}
-		err1 = internal.Unwrap(err1)
+		err1 = errors.Unwrap(err1)
 	}
 
 	// wrapping nil -> nil

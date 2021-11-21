@@ -27,27 +27,3 @@ jobs:
         run: |
           export PATH=$PATH:$GOPATH/bin
           make tools all
-  buildold:
-    env:
-      GOPATH: ${{ github.workspace }}
-      GO111MODULE: off
-    defaults:
-      run:
-        working-directory: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go: [ '1.9','1.12' ]
-    name: Build with old go version ${{ matrix.go }}, no modules
-    steps:
-      - uses: actions/setup-go@v2
-        with:
-          go-version: ${{ matrix.go }}
-      - uses: actions/checkout@v2
-        with:
-          path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
-      - name: Build
-        run: |
-          export PATH=$PATH:$GOPATH/bin
-          go get ./...
-          go build ./...

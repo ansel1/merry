@@ -3,7 +3,6 @@ package merry
 import (
 	"errors"
 	"fmt"
-	"github.com/ansel1/merry/v2/internal"
 	"runtime"
 )
 
@@ -196,7 +195,7 @@ func Lookup(err error, key interface{}) (interface{}, bool) {
 		case *errWithCause:
 			err = t.err
 		default:
-			if internal.As(err, &merr) {
+			if errors.As(err, &merr) {
 				err = merr
 			} else {
 				return nil, false
@@ -221,7 +220,7 @@ func Values(err error) map[interface{}]interface{} {
 				values[e.key] = e.value
 			}
 		}
-		err = internal.Unwrap(err)
+		err = errors.Unwrap(err)
 	}
 
 	return values
@@ -261,7 +260,7 @@ func UserMessage(err error) string {
 // nil is returned.
 func Cause(err error) error {
 	var causer *errWithCause
-	if internal.As(err, &causer) {
+	if errors.As(err, &causer) {
 		return causer.cause
 	}
 	return nil

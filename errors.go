@@ -281,7 +281,7 @@ func Prependf(err error, format string, args ...interface{}) Error {
 // merry.Is(err1, err2, err3) == errors.Is(err1, err2) || errors.Is(err1, err3)
 func Is(e error, originals ...error) bool {
 	for _, o := range originals {
-		if is(e, o) {
+		if errors.Is(e, o) {
 			return true
 		}
 	}
@@ -295,7 +295,7 @@ func Is(e error, originals ...error) bool {
 // deprecated: use errors.Is() or errors.As() instead.
 func Unwrap(e error) error {
 	for {
-		next := unwrap(e)
+		next := errors.Unwrap(e)
 		if next == nil {
 			return e
 		}

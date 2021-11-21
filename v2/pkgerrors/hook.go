@@ -4,8 +4,8 @@
 package pkgerrors
 
 import (
+	errors2 "errors"
 	"github.com/ansel1/merry/v2"
-	"github.com/ansel1/merry/v2/internal"
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +25,7 @@ func IntegrateStacks() merry.Wrapper {
 	return merry.WrapperFunc(func(err error, depth int) error {
 		var s stackTracer
 
-		if err != nil && !merry.HasStack(err) && internal.As(err, &s) {
+		if err != nil && !merry.HasStack(err) && errors2.As(err, &s) {
 			if frames := s.StackTrace(); len(frames) > 0 {
 				stack := make([]uintptr, len(frames))
 				for i := range frames {

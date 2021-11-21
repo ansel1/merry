@@ -4,8 +4,8 @@
 package goerrors
 
 import (
+	"errors"
 	"github.com/ansel1/merry/v2"
-	"github.com/ansel1/merry/v2/internal"
 )
 
 // Install installs IntegrateStacks as a merry hook.
@@ -28,7 +28,7 @@ func IntegrateStacks() merry.Wrapper {
 
 		var c callerser
 
-		if internal.As(err, &c) {
+		if errors.As(err, &c) {
 			if stack := c.Callers(); len(stack) > 0 {
 				return merry.WithStack(stack).Wrap(err, depth)
 			}

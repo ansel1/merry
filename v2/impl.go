@@ -1,8 +1,8 @@
 package merry
 
 import (
+	"errors"
 	"fmt"
-	"github.com/ansel1/merry/v2/internal"
 	"reflect"
 )
 
@@ -93,7 +93,7 @@ func (e *errWithCause) Unwrap() error {
 
 	// errWithCause.Is/As() also already checked nextErr, so we want to
 	// unwrap it and get to the next error down.
-	nextErr = internal.Unwrap(nextErr)
+	nextErr = errors.Unwrap(nextErr)
 
 	// we've reached the end of this wrapper chain.  Return the cause.
 	if nextErr == nil {

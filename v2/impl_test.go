@@ -3,7 +3,6 @@ package merry
 import (
 	"errors"
 	"fmt"
-	"github.com/ansel1/merry/v2/internal"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -122,15 +121,15 @@ func TestIs(t *testing.T) {
 	// an error is all the errors it wraps
 	e1 := New("blue")
 	e2 := Wrap(e1, WithHTTPCode(5))
-	assert.True(t, internal.Is(e2, e1))
-	assert.False(t, internal.Is(e1, e2))
+	assert.True(t, errors.Is(e2, e1))
+	assert.False(t, errors.Is(e1, e2))
 
 	// is works through other unwrapper implementations
 	e3 := &UnwrapperError{err: e2}
 	e4 := Wrap(e3, WithUserMessage("hi"))
-	assert.True(t, internal.Is(e4, e3))
-	assert.True(t, internal.Is(e4, e2))
-	assert.True(t, internal.Is(e4, e1))
+	assert.True(t, errors.Is(e4, e3))
+	assert.True(t, errors.Is(e4, e2))
+	assert.True(t, errors.Is(e4, e1))
 
 	// an error is also any of the causes
 	rootCause := errors.New("ioerror")
@@ -138,9 +137,9 @@ func TestIs(t *testing.T) {
 	outererr := New("failed", WithCause(rootCause1))
 	outererr1 := Wrap(outererr, WithUserMessage("sorry!"))
 
-	assert.True(t, internal.Is(outererr1, outererr))
-	assert.True(t, internal.Is(outererr1, rootCause1))
-	assert.True(t, internal.Is(outererr1, rootCause))
+	assert.True(t, errors.Is(outererr1, outererr))
+	assert.True(t, errors.Is(outererr1, rootCause1))
+	assert.True(t, errors.Is(outererr1, rootCause))
 
 	// but only the latest cause
 	newCause := errors.New("new cause")
@@ -161,27 +160,27 @@ func TestAs(t *testing.T) {
 
 	// as will find matching errors in the chain
 	var rerr *redError
-	assert.False(t, internal.As(err, &rerr))
+	assert.False(t, errors.As(err, &rerr))
 	assert.Nil(t, rerr)
 
 	rr := redError(3)
 	err = Wrap(&rr)
 
-	assert.True(t, internal.As(err, &rerr))
+	assert.True(t, errors.As(err, &rerr))
 	assert.Equal(t, &rr, rerr)
 
 	rerr = nil
 
 	// test that it works with non-merry errors in the chain
 	err = &UnwrapperError{err: err}
-	assert.True(t, internal.As(err, &rerr))
+	assert.True(t, errors.As(err, &rerr))
 	assert.Equal(t, &rr, rerr)
 
 	err = Wrap(err, PrependMessage("asdf"))
 
 	rerr = nil
 
-	assert.True(t, internal.As(err, &rerr))
+	assert.True(t, errors.As(err, &rerr))
 	assert.Equal(t, &rr, rerr)
 
 	// will search causes as well
@@ -189,10 +188,10 @@ func TestAs(t *testing.T) {
 
 	rerr = nil
 
-	assert.True(t, internal.As(err, &rerr))
+	assert.True(t, errors.As(err, &rerr))
 	assert.Equal(t, &rr, rerr)
 
 	// but only the latest cause
 	err = Wrap(err, WithCause(errors.New("new cause")))
-	assert.False(t, internal.As(err, &rerr))
+	assert.False(t, errors.As(err, &rerr))
 }
