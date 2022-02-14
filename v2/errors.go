@@ -103,7 +103,8 @@ func Apply(err error, wrappers ...Wrapper) error {
 }
 
 // ApplySkipping is like WrapSkipping, but does not execute hooks or do automatic stack capture.  It just
-// applies the wrappers to the error.
+// applies the wrappers to the error.  It is useful in Wrapper implementations which
+// // want to apply other Wrappers without starting an infinite recursion.
 func ApplySkipping(err error, skip int, wrappers ...Wrapper) error {
 	if err == nil {
 		return nil
@@ -296,7 +297,23 @@ func captureStack(err error, skip int, force bool) error {
 	if err == nil {
 		return nil
 	}
-	if !force && (!captureStacks || HasStack(err)) {
+
+	var c interface {
+		Callers() []uintptr
+	}
+
+	switch {
+	case force:
+		// always capture
+	case HasStack(err):
+		return err
+	case errors.As(err, &c):
+		// if the go-errors already captured a stack
+		// reuse it
+		if stack := c.Callers(); len(stack) > 0 {
+			return Set(err, errKeyStack, stack)
+		}
+	case !captureStacks:
 		return err
 	}
 

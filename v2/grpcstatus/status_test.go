@@ -96,36 +96,6 @@ func TestFromProto(t *testing.T) {
 	assert.Equal(t, s2, s1)
 }
 
-func TestToError(t *testing.T) {
-	// nil -> nil
-	assert.Nil(t, ToError(nil))
-
-	s := status.New(codes.Canceled, "blue")
-
-	_, _, rl, _ := runtime.Caller(0)
-	err := ToError(s)
-	err1 := s.Err()
-
-	assert.True(t, errors.Is(err, err1))
-
-	_, line := merry.Location(err)
-	assert.Equal(t, rl+1, line)
-
-	// should have set a derived http code
-	assert.Equal(t, http.StatusRequestTimeout, merry.HTTPCode(err))
-
-	// should translate details into formatted stack
-	s, err = s.WithDetails(
-		&errdetails.DebugInfo{StackEntries: []string{"blue", "red"}},
-		&errdetails.LocalizedMessage{Message: "hi"},
-	)
-
-	err = ToError(s)
-
-	assert.Equal(t, "hi", merry.UserMessage(err))
-	assert.Equal(t, []string{"blue", "red"}, merry.FormattedStack(err))
-}
-
 func TestFromError(t *testing.T) {
 	// nil -> nil
 	s, ok := FromError(nil)
@@ -135,7 +105,7 @@ func TestFromError(t *testing.T) {
 
 	// if err already has a status, return that
 	s = New(codes.Canceled, "blue")
-	err := ToError(s)
+	err := s.Err()
 	s1, ok = FromError(err)
 	s1.Proto()
 	assert.Equal(t, s, s1)
@@ -174,55 +144,6 @@ func TestFromContextError(t *testing.T) {
 	assert.Equal(t, codes.Canceled, s.Code())
 }
 
-func TestWithStatusDetails(t *testing.T) {
-	// converts the code and details of a Status into corresponding merry wrappers
-	s, err := New(codes.Unauthenticated, "blue").WithDetails(
-		&errdetails.DebugInfo{StackEntries: []string{"blue", "red"}},
-		&errdetails.LocalizedMessage{Message: "hi"},
-	)
-	require.NoError(t, err)
-
-	// nil -> nil
-	assert.Nil(t, WithStatusDetails(s).Wrap(nil, 0))
-	assert.EqualError(t, WithStatusDetails(nil).Wrap(errors.New("blue"), 0), "blue")
-
-	// translate details
-	err = merry.New("red", WithStatusDetails(s))
-	assert.Equal(t, "red", err.Error())
-	assert.Equal(t, http.StatusUnauthorized, merry.HTTPCode(err))
-	assert.Equal(t, "hi", merry.UserMessage(err))
-	assert.Equal(t, []string{"blue", "red"}, merry.FormattedStack(err))
-
-	// status with no details
-	err = merry.New("red", WithStatusDetails(New(codes.Unknown, "blue")), merry.NoCaptureStack())
-	assert.Equal(t, 500, merry.HTTPCode(err))
-	assert.Empty(t, merry.UserMessage(err))
-	assert.Empty(t, merry.FormattedStack(err))
-}
-
-func TestWithStatus(t *testing.T) {
-	// nil -> nil
-	assert.Nil(t, WithStatus(New(codes.Canceled, "blue")).Wrap(nil, 0))
-	assert.EqualError(t, WithStatus(nil).Wrap(errors.New("blue"), 0), "blue")
-
-	// attach status
-	s := New(codes.Canceled, "red")
-	err := merry.New("blue", WithStatus(s))
-	s1, ok := FromError(err)
-	require.True(t, ok)
-	s1.Proto()
-	assert.Equal(t, s, s1)
-
-	// attach a new status, overrides old
-	s2 := New(codes.DeadlineExceeded, "yellow")
-	err = merry.Wrap(err, WithStatus(s2))
-	s3, ok := FromError(err)
-	require.True(t, ok)
-	s3.Proto()
-	assert.Equal(t, s2, s3)
-	assert.NotEqual(t, s, s3)
-}
-
 func TestWithCode(t *testing.T) {
 	// nil -> nil
 	assert.Nil(t, WithCode(codes.Canceled).Wrap(nil, 0))
@@ -236,7 +157,7 @@ func TestWithCode(t *testing.T) {
 	s, err = s.WithDetails(&errdetails.LocalizedMessage{Message: "yikes"})
 	require.NoError(t, err)
 
-	err = merry.Wrap(ToError(s), WithCode(codes.DeadlineExceeded))
+	err = merry.Wrap(s.Err(), WithCode(codes.DeadlineExceeded))
 	assert.Equal(t, codes.DeadlineExceeded, Code(err))
 	assert.Equal(t, "blue", Convert(err).Message())
 	assert.Equal(t, codes.DeadlineExceeded, Convert(err).Code())
@@ -273,7 +194,7 @@ func TestDetailsFromError(t *testing.T) {
 	err := merry.New("blue", merry.WithUserMessage("yikes"), merry.WithFormattedStack([]string{"blue", "red"}))
 
 	assert.Equal(t, []proto.Message{
-		&errdetails.LocalizedMessage{Message: "yikes"},
+		&errdetails.LocalizedMessage{Message: "yikes", Locale: "en-US"},
 		&errdetails.DebugInfo{StackEntries: []string{"blue", "red"}},
 	}, DetailsFromError(err))
 }
@@ -284,11 +205,4 @@ func TestCodeFromHTTPStatus(t *testing.T) {
 		assert.Equal(t, codes.OK, CodeFromHTTPStatus(i), "for status code %v", i)
 	}
 	assert.Equal(t, codes.Unknown, CodeFromHTTPStatus(500))
-}
-
-func TestHTTPStatusFromCode(t *testing.T) {
-	assert.Equal(t, http.StatusTooManyRequests, HTTPStatusFromCode(codes.ResourceExhausted))
-
-	// default
-	assert.Equal(t, http.StatusInternalServerError, HTTPStatusFromCode(codes.Code(55)))
 }

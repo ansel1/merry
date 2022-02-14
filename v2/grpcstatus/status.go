@@ -8,7 +8,7 @@
 // the new error wrapping conventions, using errors.Is and errors.As to extract
 // a Status from nested errors.
 //
-// This package also adds additional utilities for adding Codes or Statuses to an existing error,
+// This package also adds additional utilities for adding Codes to an existing error,
 // and converting a merry error into a Status.
 package status
 
@@ -58,14 +58,6 @@ func FromProto(s *spb.Status) *Status {
 	return status.FromProto(s)
 }
 
-// ToError creates an error from a Status.  It is an alternative to Status's Err() method.
-// It will translate LocalizedMessage and DebugInfo details on the Status into corresponding
-// error properties (user message and formatted stack, respectively).  If the Status doesn't
-// contain a DebugInfo detail, it will capture a stack.
-func ToError(s *Status) error {
-	return merry.WrapSkipping(s.Err(), 1, WithStatusDetails(s))
-}
-
 // FromError returns a Status representing err if the error or any of its causes can
 // be coerced to a GRPCStatuser with errors.As().  Errors created by this package
 // or by google.golang.org/grpc/status have a Status that will be found by this
@@ -81,7 +73,16 @@ func FromError(err error) (s *Status, ok bool) {
 
 	var statuser GRPCStatuser
 	if errors.As(err, &statuser) {
-		return statuser.GRPCStatus(), true
+		grpcStatus := statuser.GRPCStatus()
+
+		// check whether the code was overridden via WithCode
+		if code, ok := lookupCode(err); ok && code != grpcStatus.Code() {
+			stProto := grpcStatus.Proto()
+			stProto.Code = int32(code)
+			grpcStatus = FromProto(stProto)
+		}
+
+		return grpcStatus, true
 	}
 
 	// construct new status from error
@@ -105,75 +106,10 @@ func FromContextError(err error) *Status {
 	return Convert(err)
 }
 
-// WithStatusDetails translates status details into error attributes:
-//
-// - LocalizedMessage details are set as the error's user message.
-// - DebugInfo details are set as the error's formatted stack.
-// - The error's HTTP code is derived from the grpc code.
-//
-// To construct an error from a status, translated status details
-// into error context information:
-//
-//     err := merry.Wrap(status.Err(), WithStatusDetails(status))
-//
-func WithStatusDetails(status *Status) merry.Wrapper {
-	return merry.WrapperFunc(func(err error, depth int) error {
-		if err == nil || status == nil {
-			return err
-		}
-
-		for _, detail := range status.Details() {
-			switch t := detail.(type) {
-			case *errdetails.LocalizedMessage:
-				message := t.GetMessage()
-				if message != "" {
-					err = merry.WithUserMessage(message).Wrap(err, depth)
-				}
-			case *errdetails.DebugInfo:
-				entries := t.GetStackEntries()
-				if len(entries) > 0 {
-					err = merry.WithFormattedStack(entries).Wrap(err, depth)
-				}
-			}
-		}
-
-		return merry.WithHTTPCode(HTTPStatusFromCode(status.Code())).Wrap(err, depth)
-	})
-}
-
-// WithStatus associates a Status with an error.  This overrides any prior
-// Status associated with the error.  FromError/Convert will return this value
-// instead of deriving a status from the error.
-func WithStatus(status *Status) merry.Wrapper {
-	return merry.WrapperFunc(func(err error, _ int) error {
-		if status == nil || err == nil {
-			return err
-		}
-
-		return &grpcStatusError{
-			err:    err,
-			status: status.Proto(),
-		}
-	})
-}
-
-// WithCode is a merry.Wrapper which associates a GRPC code with the error.  Code() will
-// return this value.  This overrides any other mapping of an error
-// to a code.
-//
-// This is the merry-compatible equivalent of the status.Error and
-// status.Errorf functions, which don't support error wrapping.
+// WithCode is a merry.Wrapper which associates a GRPC code with the error.
+// Code() will return this value.
 func WithCode(code codes.Code) merry.Wrapper {
-	return merry.WrapperFunc(func(err error, depth int) error {
-		if err == nil {
-			return nil
-		}
-
-		status, _ := FromError(err)
-		p := status.Proto()
-		p.Code = int32(code)
-		return WithStatus(FromProto(p)).Wrap(err, depth)
-	})
+	return merry.WithValue(errValueKeyCode, code)
 }
 
 // Code returns the grpc response code for an error.  It is
@@ -183,18 +119,23 @@ func WithCode(code codes.Code) merry.Wrapper {
 // The rules like a switch statement:
 //
 // - err is nil: codes.OK
-// - grpc.Code was explicitly associated with the error using
-//   WithCode(): associated code
-// - errors.As(GRPCStatuser): statuser.Status().Code()
+// - code previously set with WithCode()
+// - errors.As(GRPCStatuser): return code from Status
 // - errors.Is(context.DeadlineExceeded): codes.DeadlineExceeded
 // - errors.Is(context.Canceled: codes.Canceled
 // - default: CodeFromHTTPStatus(), which defaults to codes.Unknown
 func Code(err error) codes.Code {
+	if err == nil {
+		return codes.OK
+	}
+
+	if code, ok := lookupCode(err); ok {
+		return code
+	}
+
 	var grpcErr GRPCStatuser
 
 	switch {
-	case err == nil:
-		return codes.OK
 	case errors.As(err, &grpcErr):
 		return grpcErr.GRPCStatus().Code()
 	case errors.Is(err, context.DeadlineExceeded):
@@ -206,6 +147,18 @@ func Code(err error) codes.Code {
 	}
 }
 
+func lookupCode(err error) (codes.Code, bool) {
+	if codeVal, ok := merry.Lookup(err, errValueKeyCode); ok {
+		code, ok := codeVal.(codes.Code)
+		return code, ok
+	}
+	return codes.OK, false
+}
+
+// DefaultLocalizedMessageLocale is the value used when encoding a merry.UserMessage()
+// to a errdetails.LocalizedMessage.
+var DefaultLocalizedMessageLocale = "en-US"
+
 // DetailsFromError derives status details from context attached to the error:
 //
 // - if the err has a user message, it will be converted into a LocalizedMessage.
@@ -214,11 +167,14 @@ func Code(err error) codes.Code {
 // Returns nil if no details are derived from the error.
 func DetailsFromError(err error) []proto.Message {
 	var details []proto.Message
+
 	if um := merry.UserMessage(err); um != "" {
 		details = append(details, &errdetails.LocalizedMessage{
 			Message: um,
+			Locale:  DefaultLocalizedMessageLocale,
 		})
 	}
+
 	if formattedStack := merry.FormattedStack(err); len(formattedStack) > 0 {
 		details = append(details, &errdetails.DebugInfo{
 			StackEntries: formattedStack,
@@ -229,7 +185,8 @@ func DetailsFromError(err error) []proto.Message {
 }
 
 // CodeFromHTTPStatus returns a grpc code from an http status code.  It returns
-// the inverse of HTTPStatusFromCode, plus some additional HTTP code mappings.
+// the inverse of github.com/grpc-ecosystem/grpc-gateway/v2/runtime.HTTPStatusFromCode,
+// plus some additional HTTP code mappings.
 //
 // If there is no mapping for the status code, it defaults to OK for status codes
 // between 200 and 299, and Unknown for all others.
@@ -289,78 +246,13 @@ func CodeFromHTTPStatus(httpStatus int) codes.Code {
 	return codes.Unknown
 }
 
-// HTTPStatusFromCode converts a gRPC error code into the corresponding HTTP response status.
-func HTTPStatusFromCode(code codes.Code) int {
-	switch code {
-	case codes.OK:
-		return http.StatusOK
-	case codes.Canceled:
-		return http.StatusRequestTimeout
-	case codes.Unknown:
-		return http.StatusInternalServerError
-	case codes.InvalidArgument:
-		return http.StatusBadRequest
-	case codes.DeadlineExceeded:
-		return http.StatusGatewayTimeout
-	case codes.NotFound:
-		return http.StatusNotFound
-	case codes.AlreadyExists:
-		return http.StatusConflict
-	case codes.PermissionDenied:
-		return http.StatusForbidden
-	case codes.Unauthenticated:
-		return http.StatusUnauthorized
-	case codes.ResourceExhausted:
-		return http.StatusTooManyRequests
-	case codes.FailedPrecondition:
-		// Note, this deliberately doesn't translate to the similarly named '412 Precondition Failed' HTTP response status.
-		return http.StatusBadRequest
-	case codes.Aborted:
-		return http.StatusConflict
-	case codes.OutOfRange:
-		return http.StatusBadRequest
-	case codes.Unimplemented:
-		return http.StatusNotImplemented
-	case codes.Internal:
-		return http.StatusInternalServerError
-	case codes.Unavailable:
-		return http.StatusServiceUnavailable
-	case codes.DataLoss:
-		return http.StatusInternalServerError
-	}
-
-	return http.StatusInternalServerError
-}
-
 // GRPCStatuser knows how to return a Status.
 type GRPCStatuser interface {
 	GRPCStatus() *Status
 }
 
-// ensure grpcStatusError implements fmt.Formatter
-var _ fmt.Formatter = (*grpcStatusError)(nil)
+// errValueKey is a private type for merry error value keys
+type errValueKey int
 
-type grpcStatusError struct {
-	err    error
-	status *spb.Status
-}
-
-func (e *grpcStatusError) Error() string {
-	return e.err.Error()
-}
-
-func (e *grpcStatusError) String() string {
-	return e.Error()
-}
-
-func (e *grpcStatusError) Unwrap() error {
-	return e.err
-}
-
-func (e *grpcStatusError) GRPCStatus() *Status {
-	return FromProto(e.status)
-}
-
-func (e *grpcStatusError) Format(f fmt.State, verb rune) {
-	merry.Format(f, verb, e)
-}
+// errValueKeyCode is a private key for storing a grpc code as a merry error value
+const errValueKeyCode = iota

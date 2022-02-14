@@ -1,26 +1,22 @@
-package goerrors
+package merry
 
 import (
-	"github.com/ansel1/merry/v2"
 	"github.com/go-errors/errors"
 	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
 )
 
-func TestHook(t *testing.T) {
-	merry.ClearHooks()
-	Install()
-
+func TestGoErrorsPreserveStack(t *testing.T) {
 	var err error
 
 	_, _, rl, _ := runtime.Caller(0)
 	err = errors.New("crash")
-	err = merry.Wrap(err, merry.WithMessage("yikes"))
+	err = Wrap(err, WithMessage("yikes"))
 
 	assert.EqualError(t, err, "yikes")
-	file, line := merry.Location(err)
+	file, line := Location(err)
 
-	assert.Contains(t, file, "hook_test.go")
+	assert.Contains(t, file, "go_errors_test.go")
 	assert.Equal(t, rl+1, line)
 }
