@@ -1,6 +1,6 @@
 module github.com/ansel1/merry/v2
 
-go 1.9
+go 1.12
 
 require (
 	github.com/ansel1/merry v1.5.1 // indirect
