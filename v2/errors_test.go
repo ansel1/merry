@@ -2,6 +2,7 @@ package merry
 
 import (
 	"errors"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
@@ -34,6 +35,10 @@ func TestErrorf(t *testing.T) {
 	assert.EqualError(t, err, "red blue black")
 	assert.Equal(t, "orange", UserMessage(err))
 	assert.Equal(t, 5, HTTPCode(err))
+
+	// Printing errors wrapped by fmt.Print should include stacktrace (https://github.com/ansel1/merry/issues/26)
+	s := fmt.Sprintf("%+v", Errorf("boom: %w", New("bang")))
+	assert.Contains(t, s, "errors_test.go")
 }
 
 func TestSentinel(t *testing.T) {
@@ -162,6 +167,14 @@ func TestWrapSkipping(t *testing.T) {
 
 	// wrapping nil -> nil
 	assert.Nil(t, WrapSkipping(nil, 1))
+
+	// Printing errors wrapped by fmt.Print should include stacktrace (https://github.com/ansel1/merry/issues/26)
+	wrappedFmtErr := WrapSkipping(fmt.Errorf("boom: %w", New("bang")), 0)
+	s := fmt.Sprintf("%+v", wrappedFmtErr)
+	assert.Contains(t, s, "errors_test.go")
+	// The wrapper used should not add extraneous nil=nil values to Values()
+	values := Values(wrappedFmtErr)
+	assert.NotContains(t, values, nil)
 }
 
 func TestAppend(t *testing.T) {

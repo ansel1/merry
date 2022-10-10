@@ -57,6 +57,10 @@ func TestErrorf(t *testing.T) {
 	err = Errorf("something %s, something %s", "borrowed", v2.WithHTTPCode(55), "blue")
 	assert.EqualError(t, err, "something borrowed, something blue")
 	assert.Equal(t, 55, HTTPCode(err))
+
+	// Printing errors wrapped by fmt.Print should include stacktrace (https://github.com/ansel1/merry/issues/26)
+	s := fmt.Sprintf("%+v", Errorf("boom: %w", New("bang")))
+	assert.Contains(t, s, "errors_test.go")
 }
 
 func TestUserError(t *testing.T) {
