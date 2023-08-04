@@ -358,6 +358,10 @@ func TestCause(t *testing.T) {
 	root := errors.New("boom")
 	err := New("yikes", WithCause(root))
 	assert.EqualError(t, Cause(err), "boom")
+
+	// with nil cause, should be no-op
+	err = New("yikes", WithCause(nil))
+	assert.Nil(t, Cause(err))
 }
 
 func TestHasStack(t *testing.T) {
