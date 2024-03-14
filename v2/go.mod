@@ -7,9 +7,9 @@ require (
 	github.com/go-errors/errors v1.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.3
-	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1
-	google.golang.org/grpc v1.56.3
-	google.golang.org/protobuf v1.30.0
+	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
+	google.golang.org/grpc v1.39.0-dev
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
