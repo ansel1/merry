@@ -2,8 +2,6 @@ module github.com/ansel1/merry/v2
 
 go 1.18
 
-toolchain go1.24.2
-
 require (
 	github.com/ansel1/vespucci/v4 v4.1.1
 	github.com/go-errors/errors v1.1.1
