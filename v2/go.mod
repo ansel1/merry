@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/ansel1/vespucci/v4 v4.1.1
-	github.com/go-errors/errors v1.1.1
+	github.com/go-errors/errors v1.5.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.3
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237
