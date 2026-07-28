@@ -111,7 +111,7 @@ func UserError(msg string) Error {
 // UserErrorf is like UserError, but uses fmt.Sprintf()
 func UserErrorf(format string, args ...interface{}) Error {
 	msg := fmt.Sprintf(format, args...)
-	return WrapSkipping(errors.New(msg), 1, v2.WithUserMessagef(msg))
+	return WrapSkipping(errors.New(msg), 1, v2.WithUserMessage(msg))
 }
 
 // Wrap turns the argument into a merry.Error.  If the argument already is a
