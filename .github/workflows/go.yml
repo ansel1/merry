@@ -15,15 +15,32 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.18','stable']
+        go: ['1.25','stable']
     name: Build with go version ${{ matrix.go }}
 
     steps:
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build
         run: |
           export PATH=$PATH:$GOPATH/bin
+          make tools all
+  buildv2:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.25','stable']
+    name: Build with go version ${{ matrix.go }}
+
+    steps:
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go }}
+      - uses: actions/checkout@v7
+      - name: Build
+        run: |
+          export PATH=$PATH:$GOPATH/bin
+          cd v2
           make tools all
