@@ -41,6 +41,18 @@ func TestErrorf(t *testing.T) {
 	assert.Contains(t, s, "errors_test.go")
 }
 
+func TestErrorfDoesNotMutateArgs(t *testing.T) {
+	args := []interface{}{"borrowed", WithHTTPCode(55), "blue"}
+	err := Errorf("%s %s", args...)
+
+	assert.EqualError(t, err, "borrowed blue")
+	assert.Equal(t, 55, HTTPCode(err))
+	if _, ok := args[1].(Wrapper); !ok {
+		t.Fatalf("Errorf mutated caller's wrapper argument: %#v", args[1])
+	}
+	assert.Equal(t, "blue", args[2])
+}
+
 func TestSentinel(t *testing.T) {
 	err := Sentinel("boom", WithHTTPCode(5), WrapperFunc(func(err error, depth int) error {
 		assert.Equal(t, 3, depth)

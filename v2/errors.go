@@ -49,21 +49,18 @@ func Sentinelf(format string, args ...interface{}) error {
 }
 
 func splitWrappers(args []interface{}) ([]interface{}, []Wrapper) {
+	fmtArgs := make([]interface{}, 0, len(args))
 	var wrappers []Wrapper
 
-	// pull out the args which are wrappers
-	n := 0
 	for _, arg := range args {
 		if w, ok := arg.(Wrapper); ok {
 			wrappers = append(wrappers, w)
 		} else {
-			args[n] = arg
-			n++
+			fmtArgs = append(fmtArgs, arg)
 		}
 	}
-	args = args[:n]
 
-	return args, wrappers
+	return fmtArgs, wrappers
 }
 
 // Wrap adds context to errors by applying Wrappers.  See WithXXX() functions for Wrappers supplied
