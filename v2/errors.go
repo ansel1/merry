@@ -49,15 +49,22 @@ func Sentinelf(format string, args ...interface{}) error {
 }
 
 func splitWrappers(args []interface{}) ([]interface{}, []Wrapper) {
-	fmtArgs := make([]interface{}, 0, len(args))
+	var fmtArgs []interface{}
 	var wrappers []Wrapper
 
-	for _, arg := range args {
+	for i, arg := range args {
 		if w, ok := arg.(Wrapper); ok {
+			if wrappers == nil {
+				fmtArgs = make([]interface{}, i, len(args)-1)
+				copy(fmtArgs, args[:i])
+			}
 			wrappers = append(wrappers, w)
-		} else {
+		} else if wrappers != nil {
 			fmtArgs = append(fmtArgs, arg)
 		}
+	}
+	if wrappers == nil {
+		return args, nil
 	}
 
 	return fmtArgs, wrappers

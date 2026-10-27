@@ -85,15 +85,22 @@ func New(msg string, wrappers ...v2.Wrapper) Error {
 // Errorf creates a new error with a formatted message and a stack.  The equivalent of golang's fmt.Errorf().
 // args can be format args, or v2 wrappers which will be applied to the error.
 func Errorf(format string, args ...interface{}) Error {
-	fmtArgs := make([]interface{}, 0, len(args))
+	var fmtArgs []interface{}
 	var wrappers []v2.Wrapper
 
-	for _, arg := range args {
+	for i, arg := range args {
 		if w, ok := arg.(v2.Wrapper); ok {
+			if wrappers == nil {
+				fmtArgs = make([]interface{}, i, len(args)-1)
+				copy(fmtArgs, args[:i])
+			}
 			wrappers = append(wrappers, w)
-		} else {
+		} else if wrappers != nil {
 			fmtArgs = append(fmtArgs, arg)
 		}
+	}
+	if wrappers == nil {
+		fmtArgs = args
 	}
 
 	return WrapSkipping(fmt.Errorf(format, fmtArgs...), 1, wrappers...)
